@@ -3,6 +3,7 @@ import express from "express";
 import sql, { createConnection } from "mysql2";
 import { config } from "dotenv";
 import { DBConfig } from "./types/types.js";
+import cookieParser from "cookie-parser"
 import { superErrorHandeler } from "./middleware/errorHandler.js";
 import { userSchema } from "./schema/userSchema.js";
 import { adminSchema } from "./schema/adminSchema.js";
@@ -13,6 +14,8 @@ import { roomPhotosSchema } from "./schema/roomPhotos.js";
 
 config({ path: "./.env" })
 const app = express();
+app.use(express.json());
+app.use(cookieParser());
 
 // set auth of database
 const dbConfig: DBConfig = {
@@ -30,13 +33,16 @@ db.connect(function (err) {
 })
 
 userSchema()
-adminSchema()
-roomSchema()
-roomPhotosSchema()
+// adminSchema()
+// roomSchema()
+// roomPhotosSchema()
 
+
+import users from "./routes/usersRoutes.js";
+app.use("/api/version1", users)
 
 app.use(superErrorHandeler)
 
-app.listen(2000, () => {
-    console.log("server is working on port 2000");
+app.listen(process.env.PORT, () => {
+    console.log(`server is working on port ${process.env.PORT} `);
 })

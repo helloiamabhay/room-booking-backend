@@ -6,6 +6,7 @@ export interface DBConfig {
 }
 
 export interface createUserBodyData {
+    userId: string;
     first_name: string;
     last_name: string;
     password: string;
@@ -17,4 +18,9 @@ export interface createUserBodyData {
     town: string;
     pinCode: number;
     gender: string;
+}
+
+export interface loginUserBodyData {
+    phoneOrEmail: string | number;
+    password: string;
 }
