@@ -33,13 +33,17 @@ db.connect(function (err) {
 })
 
 userSchema()
-// adminSchema()
-// roomSchema()
-// roomPhotosSchema()
+adminSchema()
+roomSchema()
+roomPhotosSchema()
 
 
 import users from "./routes/usersRoutes.js";
-app.use("/api/version1", users)
+import roomAdmins from "./routes/adminRoutes.js";
+
+app.use("/api/v1/users", users)
+app.use("/api/v1/admins", roomAdmins)
+
 
 app.use(superErrorHandeler)
 

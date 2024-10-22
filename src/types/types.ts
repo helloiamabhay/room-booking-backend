@@ -8,19 +8,34 @@ export interface DBConfig {
 export interface createUserBodyData {
     userId: string;
     first_name: string;
-    last_name: string;
+    last_name?: string;
+    email: string;
     password: string;
-    email?: string;
-    phone: number;
+    phone?: number;
     altPhone?: number;
+    state?: string;
+    district?: string;
+    town?: string;
+    pinCode?: number;
+    gender?: string;
+}
+
+export interface loginDataType {
+    phoneOrEmail: string | number;
+    password: string;
+}
+
+export interface createAdminDataType {
+    first_name: string;
+    last_name?: string;
+    phone: number;
+    email: string;
+    password: string;
+    hostel_name: string;
     state: string;
     district: string;
-    town: string;
+    town_name: string;
     pinCode: number;
     gender: string;
 }
 
-export interface loginUserBodyData {
-    phoneOrEmail: string | number;
-    password: string;
-}

@@ -4,6 +4,9 @@ import { config } from "dotenv";
 import cookieParser from "cookie-parser";
 import { superErrorHandeler } from "./middleware/errorHandler.js";
 import { userSchema } from "./schema/userSchema.js";
+import { adminSchema } from "./schema/adminSchema.js";
+import { roomSchema } from "./schema/roomSchema.js";
+import { roomPhotosSchema } from "./schema/roomPhotos.js";
 // import { userSchema } from "./schema/userSchema.js";
 config({ path: "./.env" });
 const app = express();
@@ -24,11 +27,13 @@ db.connect(function (err) {
     console.log("db connected");
 });
 userSchema();
-// adminSchema()
-// roomSchema()
-// roomPhotosSchema()
+adminSchema();
+roomSchema();
+roomPhotosSchema();
 import users from "./routes/usersRoutes.js";
-app.use("/api/version1", users);
+import roomAdmins from "./routes/adminRoutes.js";
+app.use("/api/v1/users", users);
+app.use("/api/v1/admins", roomAdmins);
 app.use(superErrorHandeler);
 app.listen(process.env.PORT, () => {
     console.log(`server is working on port ${process.env.PORT} `);

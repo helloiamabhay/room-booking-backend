@@ -7,9 +7,13 @@ import jwt from "jsonwebtoken";
 import ErrorHandler from "../middleware/customError.js";
 export const createUser = tryCatchFunction(async (req, res, next) => {
     // take data from user
-    const { first_name, last_name, password, email, phone, altPhone, state, district, town, pinCode, gender } = req.body;
-    if (!validator.isMobilePhone(String(phone), 'en-IN')) {
-        return next(new ErrorHandler("Invalid phone number", 400));
+    const { first_name, last_name, email, password, phone, altPhone, state, district, town, pinCode, gender } = req.body;
+    if (!first_name || !email || !password)
+        return next(new ErrorHandler("Please enter all fields!", 400));
+    if (phone) {
+        if (!validator.isMobilePhone(String(phone), 'en-IN')) {
+            return next(new ErrorHandler("Invalid phone number", 400));
+        }
     }
     if (!validator.isEmail(email))
         return next(new ErrorHandler("Please enter valid email.", 400));
@@ -38,7 +42,7 @@ export const createUser = tryCatchFunction(async (req, res, next) => {
     // run query 
     db.query(query, values, (err, result) => {
         if (err)
-            return next(new ErrorHandler(`err is : ${err}`, 404));
+            return next(new ErrorHandler(`err is : ${err.message}`, 404));
         else {
             // generate jwt token 
             const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '15d' });

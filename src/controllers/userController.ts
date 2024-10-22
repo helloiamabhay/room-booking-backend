@@ -5,22 +5,25 @@ import bcrypt from "bcrypt";
 import validator from "validator";
 import { v4 as uuidv4 } from 'uuid';
 import jwt from "jsonwebtoken"
-import { createUserBodyData, loginUserBodyData } from "../types/types.js";
+import { createUserBodyData, loginDataType } from "../types/types.js";
 import ErrorHandler from "../middleware/customError.js";
 import { RowDataPacket } from "mysql2";
-import { strict } from "assert";
 
 
 
 export const createUser = tryCatchFunction(async (req: Request<{}, {}, createUserBodyData>, res: Response, next: NextFunction) => {
     // take data from user
-    const { first_name, last_name, password, email, phone, altPhone, state, district, town, pinCode, gender } = req.body;
+    const { first_name, last_name, email, password, phone, altPhone, state, district, town, pinCode, gender } = req.body;
 
-    if (!validator.isMobilePhone(String(phone), 'en-IN')) {
-        return next(new ErrorHandler("Invalid phone number", 400));
+    if (!first_name || !email || !password) return next(new ErrorHandler("Please enter all fields!", 400));
+
+    if (phone) {
+        if (!validator.isMobilePhone(String(phone), 'en-IN')) {
+            return next(new ErrorHandler("Invalid phone number", 400));
+        }
     }
 
-    if (!validator.isEmail(email as string)) return next(new ErrorHandler("Please enter valid email.", 400));
+    if (!validator.isEmail(email)) return next(new ErrorHandler("Please enter valid email.", 400));
 
     // check user exist or not 
     const existUserPromise = new Promise<boolean>((resolve, reject) => {
@@ -48,7 +51,7 @@ export const createUser = tryCatchFunction(async (req: Request<{}, {}, createUse
     const values = [userId, first_name, last_name, hashedPassword, email, phone, altPhone, state, district, town, pinCode, gender]
     // run query 
     db.query(query, values, (err, result) => {
-        if (err) return next(new ErrorHandler(`err is : ${err}`, 404));
+        if (err) return next(new ErrorHandler(`err is : ${err.message}`, 404));
         else {
             // generate jwt token 
             const token = jwt.sign({ userId }, process.env.JWT_SECRET as string, { expiresIn: '15d' });
@@ -68,7 +71,7 @@ export const createUser = tryCatchFunction(async (req: Request<{}, {}, createUse
     })
 })
 
-export const loginUser = tryCatchFunction(async (req: Request<{}, {}, loginUserBodyData>, res: Response, next: NextFunction) => {
+export const loginUser = tryCatchFunction(async (req: Request<{}, {}, loginDataType>, res: Response, next: NextFunction) => {
 
     const { phoneOrEmail, password } = req.body;
 
