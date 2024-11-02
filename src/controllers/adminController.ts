@@ -8,7 +8,6 @@ import validator from "validator";
 import ErrorHandler from "../middleware/customError.js";
 import { RowDataPacket } from "mysql2";
 import jwt from "jsonwebtoken";
-import { log } from "util";
 
 
 export const createAdmin = tryCatchFunction(async (req: Request<{}, {}, createAdminDataType>, res: Response, next: NextFunction) => {

@@ -1,4 +1,3 @@
-
 import express from "express";
 import sql, { createConnection } from "mysql2";
 import { config } from "dotenv";
@@ -10,6 +9,7 @@ import { adminSchema } from "./schema/adminSchema.js";
 import { roomSchema } from "./schema/roomSchema.js";
 import { roomPhotosSchema } from "./schema/roomPhotos.js";
 // import { userSchema } from "./schema/userSchema.js";
+
 
 
 config({ path: "./.env" })
@@ -50,3 +50,6 @@ app.use(superErrorHandeler)
 app.listen(process.env.PORT, () => {
     console.log(`server is working on port ${process.env.PORT} `);
 })
+
+
+

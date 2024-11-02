@@ -2,7 +2,7 @@ import { db } from "../app.js";
 export function userSchema() {
     const userTable = `
     CREATE TABLE IF NOT EXISTS users (
-        userId VARCHAR(200) PRIMARY KEY ,
+        userId VARCHAR(200) PRIMARY KEY NOT NULL UNIQUE,
         first_name VARCHAR(30) NOT NULL,
         last_name VARCHAR(15) DEFAULT NULL,
         email VARCHAR(100) UNIQUE NOT NULL,
