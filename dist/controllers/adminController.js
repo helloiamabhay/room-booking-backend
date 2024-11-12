@@ -16,7 +16,7 @@ export const createAdmin = tryCatchFunction(async (req, res, next) => {
     if (!validator.isEmail(email))
         return next(new ErrorHandler("Please enter valid email Id.", 400));
     const existAdminPromise = new Promise((resolve, reject) => {
-        db.query(`SELECT * FROM ADMINS WHERE PHONE=? oR EMAIL=?`, [phone, email], (err, result) => {
+        db.query(`SELECT * FROM ADMINS WHERE PHONE=? OR EMAIL=?`, [phone, email], (err, result) => {
             if (err) {
                 reject(err);
             }
