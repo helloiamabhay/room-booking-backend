@@ -95,7 +95,7 @@ export const loginAdmin = tryCatchFunction(async (req, res, next) => {
     });
 });
 export const adminLogout = tryCatchFunction(async (req, res, next) => {
-    res.clearCookie('adminAuthToken', {
+    res.clearCookie('userAuthToken', {
         httpOnly: true,
         secure: true,
         sameSite: 'strict'
@@ -105,3 +105,14 @@ export const adminLogout = tryCatchFunction(async (req, res, next) => {
         message: "Logged Out Seccessfully!"
     });
 });
+export const getId = (req, res) => {
+    const token = req.cookies['userAuthToken'];
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const adminId = decoded.adminId;
+        res.send(`Admin ID: ${adminId}`);
+    }
+    catch (error) {
+        res.status(401).send('Invalid token');
+    }
+};

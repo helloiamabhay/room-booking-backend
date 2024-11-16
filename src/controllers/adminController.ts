@@ -7,7 +7,7 @@ import { createAdminDataType, loginDataType } from "../types/types.js";
 import validator from "validator";
 import ErrorHandler from "../middleware/customError.js";
 import { RowDataPacket } from "mysql2";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
 
 export const createAdmin = tryCatchFunction(async (req: Request<{}, {}, createAdminDataType>, res: Response, next: NextFunction) => {
@@ -119,7 +119,7 @@ export const loginAdmin = tryCatchFunction(async (req: Request<{}, {}, loginData
 
 
 export const adminLogout = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
-    res.clearCookie('adminAuthToken', {
+    res.clearCookie('userAuthToken', {
         httpOnly: true,
         secure: true,
         sameSite: 'strict'
@@ -131,4 +131,16 @@ export const adminLogout = tryCatchFunction(async (req: Request, res: Response, 
     })
 
 })
+
+export const getId = (req: Request, res: Response) => {
+    const token = req.cookies['userAuthToken'];
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+        const adminId = (decoded as JwtPayload).adminId as string;
+        res.send(`Admin ID: ${adminId}`);
+    } catch (error) {
+        res.status(401).send('Invalid token');
+
+    }
+}
 
