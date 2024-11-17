@@ -18,10 +18,12 @@ export const roomController = tryCatchFunction(async (req: Request, res: Respons
     const room_id = uuidv4();
     const photo_url_id = uuidv4();
 
+
+
     // admin id --------------------------------------------------------------------------
     const token = req.cookies['adminAuthToken'];
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-    const admin_ref_id = (decoded as JwtPayload).adminId as string;;
+    const admin_ref_id = (decoded as JwtPayload).adminId as string;
     console.log(admin_ref_id);
 
     // values -------------------------------------------------------------------------------

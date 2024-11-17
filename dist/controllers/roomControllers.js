@@ -15,7 +15,6 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
     const token = req.cookies['adminAuthToken'];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const admin_ref_id = decoded.adminId;
-    ;
     console.log(admin_ref_id);
     // values -------------------------------------------------------------------------------
     const values = [room_id, admin_ref_id, price, rating, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id];

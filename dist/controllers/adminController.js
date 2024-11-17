@@ -44,7 +44,7 @@ export const createAdmin = tryCatchFunction(async (req, res, next) => {
             // generate jwt token
             const token = jwt.sign({ adminId }, process.env.JWT_SECRET, { expiresIn: '10d' });
             // set cookie with jwt token
-            res.cookie('userAuthToken', token, {
+            res.cookie('adminAuthToken', token, {
                 maxAge: 10 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
                 secure: true,
@@ -95,7 +95,7 @@ export const loginAdmin = tryCatchFunction(async (req, res, next) => {
     });
 });
 export const adminLogout = tryCatchFunction(async (req, res, next) => {
-    res.clearCookie('userAuthToken', {
+    res.clearCookie('adminAuthToken', {
         httpOnly: true,
         secure: true,
         sameSite: 'strict'

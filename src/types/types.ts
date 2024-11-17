@@ -39,3 +39,22 @@ export interface createAdminDataType {
     gender: string;
 }
 
+export interface createRoomTypes {
+    price: number;
+    rating: number;
+    room_status: string;
+    bed: string;
+    bed_sit: string;
+    toilet: string;
+    bathroom: string;
+    fan: string;
+    kitchen: string;
+    table_chair: string;
+    almira: string;
+    water_supply: number
+    water_drink: string;
+    parking_space: string;
+    wifi: string;
+    ellectricity_bill: string;
+    rules: string;
+}
