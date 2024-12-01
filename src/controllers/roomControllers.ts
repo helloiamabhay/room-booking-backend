@@ -4,9 +4,12 @@ import ErrorHandler from "../middleware/customError.js";
 import { v4 as uuidv4 } from "uuid";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { db } from "../app.js";
+import { createRoomTypes } from "../types/types.js";
+import { upload } from "../middleware/room_photo_uploads.js";
 
 
-export const roomController = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
+
+export const roomController = tryCatchFunction(async (req: Request<{}, {}, createRoomTypes>, res: Response, next: NextFunction) => {
 
     const { price, rating, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body;
 
@@ -39,13 +42,30 @@ export const roomController = tryCatchFunction(async (req: Request, res: Respons
         }
     })
 
+    // upload photo
+
+})
 
 
+export const photoUploadController = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
+    upload(req, res, (err) => {
+        if (err) return next(new ErrorHandler(`file uploading error: ${err}`, 404));
 
+        const files = req.files as Express.Multer.File[];
 
+        if (!req.files || files.length === 0) return next(new ErrorHandler("Please select at-least one photo", 404));
 
+        if (files.length > 10) return next(new ErrorHandler("One time you can uploads 10 photos", 404));
 
+        const img = files.map(file => `https://room-booking-app.s3.ap-south-1.amazonaws.com/${file.originalname}`)
 
+        res.status(200).json({
+            success: true,
+            img
+
+        })
+
+    })
 
 
 
