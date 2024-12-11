@@ -1,5 +1,5 @@
 import express from "express";
-import sql, { createConnection } from "mysql2";
+import sql from "mysql2";
 import { config } from "dotenv";
 import { DBConfig } from "./types/types.js";
 import cookieParser from "cookie-parser"
@@ -9,6 +9,7 @@ import { adminSchema } from "./schema/adminSchema.js";
 import { roomSchema } from "./schema/roomSchema.js";
 import { roomPhotosSchema } from "./schema/roomPhotos.js";
 // import { userSchema } from "./schema/userSchema.js";
+
 
 
 
@@ -38,8 +39,13 @@ roomSchema()
 roomPhotosSchema()
 
 
+
+
+
 import users from "./routes/usersRoutes.js";
 import roomAdmins from "./routes/adminRoutes.js";
+
+
 
 app.use("/api/v1/users", users)
 app.use("/api/v1/admins", roomAdmins)
@@ -52,6 +58,7 @@ app.use(superErrorHandeler)
 app.listen(process.env.PORT, () => {
     console.log(`server is working on port ${process.env.PORT} `);
 })
+
 
 
 

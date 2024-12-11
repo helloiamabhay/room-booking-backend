@@ -1,11 +1,16 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, query, Request, Response } from "express";
 import { tryCatchFunction } from "../middleware/errorHandler.js";
 import ErrorHandler from "../middleware/customError.js";
 import { v4 as uuidv4 } from "uuid";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { db } from "../app.js";
 import { createRoomTypes } from "../types/types.js";
-import { upload } from "../middleware/room_photo_uploads.js";
+import { upload_func } from "../middleware/room_photo_uploads.js";
+import { RowDataPacket } from "mysql2";
+import { getAdminId } from "../middleware/userAuthentication.js";
+
+
+
 
 
 
@@ -44,20 +49,50 @@ export const roomController = tryCatchFunction(async (req: Request<{}, {}, creat
 
     // upload photo
 
+
 })
 
 
 export const photoUploadController = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
+
+
+    // admin id -------------------------------------------------------------------------
+
+    const admin_ref_id = getAdminId(req, res, next)
+    // console.log("admin id = " + admin_ref_id);
+
+
+    // get photo id -------------------------------------------------------------------------
+    function getPhotoUrl() {
+        const query = 'SELECT PHOTO_URL_ID FROM ROOMS WHERE ADMIN_REF_ID = ?'
+        return new Promise<RowDataPacket[]>((resolve, reject) => {
+            db.query<RowDataPacket[]>(query, admin_ref_id, (err, result) => {
+                if (err) {
+                    return reject(`Error: ${err}`);
+                }
+                if (result.length === 0) {
+                    return reject('No photo URL found for the given admin reference ID');
+                }
+                resolve(result[0].PHOTO_URL_ID);
+            });
+        })
+    }
+
+    const photo_url_id = await getPhotoUrl()
+    // console.log("photo-id = " + photo_url_id);
+
+    const upload = upload_func(String(photo_url_id));
     upload(req, res, (err) => {
-        if (err) return next(new ErrorHandler(`file uploading error: ${err}`, 404));
-
         const files = req.files as Express.Multer.File[];
+        if (err == 'MulterError: Unexpected field') return next(new ErrorHandler("One time you can uploads 10 photos", 404));
+        if (err) return next(new ErrorHandler(`Could't upload, Please try again : ${err}`, 404));
 
-        if (!req.files || files.length === 0) return next(new ErrorHandler("Please select at-least one photo", 404));
 
-        if (files.length > 10) return next(new ErrorHandler("One time you can uploads 10 photos", 404));
+        if (!files || files.length === 0) return next(new ErrorHandler("Please select at-least one photo", 404));
 
-        const img = files.map(file => `https://room-booking-app.s3.ap-south-1.amazonaws.com/${file.originalname}`)
+
+
+        const img = files.map(file => `https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${photo_url_id}/${encodeURIComponent(file.originalname)}`)
 
         res.status(200).json({
             success: true,
