@@ -90,11 +90,11 @@ export const loginUser = tryCatchFunction(async (req: Request<{}, {}, loginDataT
 
     const userExists = await existUserPromise;
 
-    if (userExists.length < 1) return next(new ErrorHandler("Incorrect Password or User!", 404));
+    if (userExists.length < 1) return next(new ErrorHandler("Incorrect Password or User!", 401));
 
     const user = userExists[0];
     const isPasswordValid = await bcrypt.compare(password, user.password)
-    if (!isPasswordValid) return next(new ErrorHandler("Incorrect Password or Id!", 404));
+    if (!isPasswordValid) return next(new ErrorHandler("Incorrect Password or Id!", 401));
 
 
     const token = jwt.sign({ userId: user.userId }, process.env.JWT_SECRET as string, { expiresIn: '15d' });
@@ -106,7 +106,7 @@ export const loginUser = tryCatchFunction(async (req: Request<{}, {}, loginDataT
         sameSite: 'strict'
     })
 
-    res.status(201).json({
+    res.status(200).json({
         success: true,
         message: `Welcome Back ${user.first_name}! `
     })
@@ -125,7 +125,5 @@ export const logoutUser = tryCatchFunction(async (req: Request, res: Response, n
         success: true,
         message: "Logged Out Seccessfully!"
     })
-
-
 
 })

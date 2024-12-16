@@ -28,21 +28,21 @@ export const createAdmin = tryCatchFunction(async (req, res, next) => {
     //  check user exists
     const existAdmin = await existAdminPromise;
     if (existAdmin) {
-        return next(new ErrorHandler("User already exists!", 404));
+        return next(new ErrorHandler("User already exists!", 400));
     }
     // hashing password
     const hashedPassword = await bcrypt.hash(password, 10);
     // query 
     const query = `INSERT INTO ADMINS(ADMIN_ID,FIRST_NAME,LAST_NAME,PHONE,EMAIL,PASSWORD,HOSTEL_NAME,STATE,DISTRICT,PINCODE,TOWN_NAME,GENDER) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) `;
-    const adminId = uuidv4();
-    const values = [adminId, first_name, last_name, phone, email, hashedPassword, hostel_name, state, district, pinCode, town_name, gender];
+    const admin_id = uuidv4();
+    const values = [admin_id, first_name, last_name, phone, email, hashedPassword, hostel_name, state, district, pinCode, town_name, gender];
     // run query
     db.query(query, values, (err, result) => {
         if (err)
             return next(new ErrorHandler(`Error is : ${err.message}`, 400));
         else {
             // generate jwt token
-            const token = jwt.sign({ adminId }, process.env.JWT_SECRET, { expiresIn: '10d' });
+            const token = jwt.sign({ admin_id }, process.env.JWT_SECRET, { expiresIn: '10d' });
             // set cookie with jwt token
             res.cookie('adminAuthToken', token, {
                 maxAge: 10 * 24 * 60 * 60 * 1000,
@@ -74,16 +74,13 @@ export const loginAdmin = tryCatchFunction(async (req, res, next) => {
     });
     const adminExist = await existUserPromise;
     if (adminExist.length < 1)
-        return next(new ErrorHandler("Wrong Password.", 404));
+        return next(new ErrorHandler("Wrong Password.", 401));
     // password verification
     const admin = adminExist[0];
-    console.log(admin);
-    console.log(admin.PASSWORD);
     const isValidPassword = await bcrypt.compare(password, admin.PASSWORD);
-    console.log(isValidPassword);
     if (!isValidPassword)
-        return next(new ErrorHandler("Wrong Password.", 404));
-    const token = jwt.sign({ admin_id: admin.admin_id }, process.env.JWT_SECRET, { expiresIn: '10d' });
+        return next(new ErrorHandler("Wrong Password.", 401));
+    const token = jwt.sign({ admin_id: admin.ADMIN_ID }, process.env.JWT_SECRET, { expiresIn: '10d' });
     res.cookie('adminAuthToken', token, {
         maxAge: 10 * 24 * 60 * 60 * 1000,
         httpOnly: true,
@@ -105,14 +102,13 @@ export const adminLogout = tryCatchFunction(async (req, res, next) => {
         message: "Logged Out Seccessfully!"
     });
 });
-export const getId = (req, res) => {
-    const token = req.cookies['userAuthToken'];
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const adminId = decoded.adminId;
-        res.send(`Admin ID: ${adminId}`);
-    }
-    catch (error) {
-        res.status(401).send('Invalid token');
-    }
-};
+// export const getId = (req: Request, res: Response) => {
+//     const token = req.cookies['userAuthToken'];
+//     try {
+//         const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+//         const adminId = (decoded as JwtPayload).adminId as string;
+//         res.send(`Admin ID: ${adminId}`);
+//     } catch (error) {
+//         res.status(401).send('Invalid token');
+//     }
+// }

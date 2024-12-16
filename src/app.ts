@@ -26,7 +26,7 @@ const dbConfig: DBConfig = {
     database: process.env.DATABASE as string,
 };
 
-// database connection
+// database connection 
 export const db = sql.createConnection(dbConfig);
 db.connect(function (err) {
     if (err) throw err;

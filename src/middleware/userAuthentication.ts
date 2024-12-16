@@ -9,18 +9,32 @@ export const userAuthenticate = tryCatchFunction(async (req: Request, res: Respo
 
 })
 
+// get admin Id from cookie-------------------------------------------------
 export const getAdminId = (req: Request, res: Response, next: NextFunction): string | void => {
 
     const token = req.cookies['adminAuthToken'];
 
-
-
-    if (!token) return next(new ErrorHandler("Please Login before! ", 404))
+    if (!token) return next(new ErrorHandler("Please Login before! ", 401))
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-        const admin_ref_id = (decoded as JwtPayload).adminId as string;
+        const admin_ref_id = (decoded as JwtPayload).admin_id as string;
         return admin_ref_id
     } catch {
         return next(new ErrorHandler("Invalid token. Please login again!", 401));
     }
+}
+
+// autherize the admin Loged-In or not -------------------------------
+export const authAdmin = (req: Request, res: Response, next: NextFunction): string | void => {
+
+    const token = req.cookies['adminAuthToken'];
+
+    if (!token) return next(new ErrorHandler("Please Login before! ", 401))
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+        (decoded as JwtPayload).admin_id as string;
+    } catch {
+        return next(new ErrorHandler("Invalid token. Please login again!", 401));
+    }
+    next()
 }

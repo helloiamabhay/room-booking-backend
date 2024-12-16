@@ -19,7 +19,7 @@ const dbConfig = {
     password: process.env.PASSWORD,
     database: process.env.DATABASE,
 };
-// database connection
+// database connection 
 export const db = sql.createConnection(dbConfig);
 db.connect(function (err) {
     if (err)
