@@ -1,6 +1,11 @@
-import { S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
 import multer from "multer";
 import multerS3 from 'multer-s3';
+import ErrorHandler from "./customError.js";
+import { db } from "../app.js";
+import { RowDataPacket } from "mysql2";
+import { getAdminId } from "./userAuthentication.js";
+import { request } from "express";
 
 
 const userS3 = new S3Client({
@@ -11,7 +16,11 @@ const userS3 = new S3Client({
     },
 });
 
+
+
+// upload images on s3 bucket ======================================
 export const upload_func = (photo_url_id: string) => {
+
     return multer({
         storage: multerS3({
             s3: userS3,
@@ -25,4 +34,49 @@ export const upload_func = (photo_url_id: string) => {
             }
         })
     }).array('photos', 10)
+
 }
+
+// search images from s3 bucket ===============================
+export const allPhotoByAdminId = async (photoId: string) => {
+
+    const input = {
+        Bucket: 'room-booking-app',
+        Prefix: `rooms/${photoId}`,
+    }
+
+
+
+    try {
+        const command = new ListObjectsV2Command(input);
+        const data = await userS3.send(command);
+        if (!data.Contents) {
+            return [];
+        }
+        const photoUrls = data.Contents.map((item) => {
+            const urls = `https://${input.Bucket}.s3.ap-south-1.amazonaws.com/${item.Key}`
+            return urls
+        })
+        return photoUrls;
+    } catch {
+        console.warn("Internet is not working")
+
+    }
+}
+
+export const getPhotoUrlId = async (admin_ref_id: string) => {
+
+
+    const query = 'SELECT PHOTO_URL_ID FROM ROOMS WHERE ADMIN_REF_ID = ?'
+    return new Promise<RowDataPacket[]>((resolve, reject) => {
+        db.query<RowDataPacket[]>(query, admin_ref_id, (err, result) => {
+            if (err) {
+                return reject(`Error:`);
+            }
+            resolve(result);
+
+        });
+    })
+
+}
+

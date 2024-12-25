@@ -5,16 +5,20 @@ import { v4 as uuidv4 } from "uuid";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { db } from "../app.js";
 import { createRoomTypes } from "../types/types.js";
-import { upload_func } from "../middleware/room_photo_uploads.js";
+import { allPhotoByAdminId, getPhotoUrlId, upload_func } from "../middleware/room_photo_uploads.js";
 import { RowDataPacket } from "mysql2";
 import { getAdminId } from "../middleware/userAuthentication.js";
-import { log } from "console";
+import { error, log } from "console";
+import { ListObjectsCommand, ListObjectsV2Command, ListObjectsV2CommandOutput, ListObjectVersionsCommand, S3Client } from "@aws-sdk/client-s3";
+import { strict } from "assert";
+import { MulterError } from "multer";
 
 
 // create room ======================================================================
 export const roomController = tryCatchFunction(async (req: Request<{}, {}, createRoomTypes>, res: Response, next: NextFunction) => {
 
     const { price, rating, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body;
+
 
     if (!price || !rating || !room_status || !bed || !bed_sit || !toilet || !bathroom || !fan || !kitchen || !table_chair || !almira || !water_supply || !water_drink || !parking_space || !wifi || !ellectricity_bill || !rules) return next(new ErrorHandler("please enter all fields", 400));
 
@@ -33,16 +37,17 @@ export const roomController = tryCatchFunction(async (req: Request<{}, {}, creat
 
     // insert data in db 
     db.query(query, values, (err, result) => {
-        if (err) return next(new ErrorHandler(`Error is : ${err}`, 400));
+        if (err) {
+            return next(new ErrorHandler(`Error is : ${err}`, 400))
+        }
         else {
             res.status(201).json({
                 success: true,
                 room_data: values
             })
         }
+
     })
-
-
 })
 
 // photo upload controller ====================================================================================
@@ -83,7 +88,7 @@ export const photoUploadController = tryCatchFunction(async (req: Request, res: 
     const upload = upload_func(String(photo_url_id));
     upload(req, res, (err) => {
         const files = req.files as Express.Multer.File[];
-        if (err == 'MulterError: Unexpected field') return next(new ErrorHandler("One time you can uploads 10 photos", 404));
+        if (err == 'MulterError: Unexpected field' || err == MulterError) return next(new ErrorHandler("One time you can uploads 10 photos", 404));
         if (err) return next(new ErrorHandler(`Could't upload, Please try again : ${err}`, 400));
         if (!files || files.length === 0) return next(new ErrorHandler("Please select at-least one photo", 400));
 
@@ -92,40 +97,39 @@ export const photoUploadController = tryCatchFunction(async (req: Request, res: 
         res.status(201).json({
             success: true,
             img
-
         })
-
     })
-
 })
 
 // get admin rooms ===========================================================
 export const getAdminRooms = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
 
-    try {
-        const AdminId = getAdminId(req, res, next);
-        const query = `SELECT * FROM ROOMS WHERE ADMIN_REF_ID = ?`
-        db.query<RowDataPacket[]>(query, AdminId, (err, result) => {
-            if (err) return next(new ErrorHandler("Rooms Not Found ", 400))
 
-            const all_rooms = result.map((room) => {
-                return [room, "https://abhayvsk.vercel.app"]
-            })
-            res.status(200).json({
-                success: true,
-                rooms: all_rooms
+    const AdminId = getAdminId(req, res, next);
+    const query = `SELECT * FROM ROOMS WHERE ADMIN_REF_ID = ?`
+    db.query<RowDataPacket[]>(query, AdminId, async (err, result) => {
+        if (err || result.length == 0) return next(new ErrorHandler("Rooms Not Found ", 404))
 
-            })
+        // const adminId = getAdminId(req, res, next)
+        // console.log(adminId);
+        // const photoId = await getPhotoUrlId(adminId as string);
+        // console.log(photoId);
+        // if (photoId.length === 0) return next(new ErrorHandler("There are no rooms ", 404));
+        // const allPhotos = await Promise.all(photoId.map((photoId) => {
+        //     return allPhotoByAdminId(photoId.PHOTO_URL_ID)
+        // }))
+
+        const allRooms = await Promise.all(result.map(async (room) => {
+            const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
+            // console.log(photos);
+            return [room, photos]
         })
+        )
 
-    } catch {
-
-    }
-
-
-
-
+        res.status(200).json({
+            success: true,
+            rooms: allRooms
+        })
+    })
 
 })
-
-// solve if not rooms have admins

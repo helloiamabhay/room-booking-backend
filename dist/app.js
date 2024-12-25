@@ -3,14 +3,17 @@ import sql from "mysql2";
 import { config } from "dotenv";
 import cookieParser from "cookie-parser";
 import { superErrorHandeler } from "./middleware/errorHandler.js";
-import { userSchema } from "./schema/userSchema.js";
-import { adminSchema } from "./schema/adminSchema.js";
-import { roomSchema } from "./schema/roomSchema.js";
-import { roomPhotosSchema } from "./schema/roomPhotos.js";
+import users from "./routes/usersRoutes.js";
+import roomAdmins from "./routes/adminRoutes.js";
 // import { userSchema } from "./schema/userSchema.js";
-config({ path: "./.env" });
+// import { adminSchema } from "./schema/adminSchema.js";
+// import { roomSchema } from "./schema/roomSchema.js";
+// import { roomPhotosSchema } from "./schema/roomPhotos.js";
+// import { userSchema } from "./schema/userSchema.js";
 const app = express();
+config({ path: "./.env" });
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 // set auth of database
 const dbConfig = {
@@ -22,16 +25,19 @@ const dbConfig = {
 // database connection 
 export const db = sql.createConnection(dbConfig);
 db.connect(function (err) {
-    if (err)
-        throw err;
-    console.log("db connected");
+    if (err) {
+        console.error("DB not connected");
+    }
+    else {
+        console.log("db connected");
+    }
 });
-userSchema();
-adminSchema();
-roomSchema();
-roomPhotosSchema();
-import users from "./routes/usersRoutes.js";
-import roomAdmins from "./routes/adminRoutes.js";
+// userSchema()
+// adminSchema()
+// roomSchema()
+// roomPhotosSchema()
+// import users from "./routes/usersRoutes.js";
+// import roomAdmins from "./routes/adminRoutes.js";
 app.use("/api/v1/users", users);
 app.use("/api/v1/admins", roomAdmins);
 app.use(superErrorHandeler);

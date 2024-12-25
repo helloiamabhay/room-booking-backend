@@ -2,8 +2,9 @@ import { tryCatchFunction } from "../middleware/errorHandler.js";
 import ErrorHandler from "../middleware/customError.js";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../app.js";
-import { upload_func } from "../middleware/room_photo_uploads.js";
+import { allPhotoByAdminId, upload_func } from "../middleware/room_photo_uploads.js";
 import { getAdminId } from "../middleware/userAuthentication.js";
+import { MulterError } from "multer";
 // create room ======================================================================
 export const roomController = tryCatchFunction(async (req, res, next) => {
     const { price, rating, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body;
@@ -19,8 +20,9 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
     const values = [room_id, admin_ref_id, price, rating, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id];
     // insert data in db 
     db.query(query, values, (err, result) => {
-        if (err)
+        if (err) {
             return next(new ErrorHandler(`Error is : ${err}`, 400));
+        }
         else {
             res.status(201).json({
                 success: true,
@@ -62,7 +64,7 @@ export const photoUploadController = tryCatchFunction(async (req, res, next) => 
     const upload = upload_func(String(photo_url_id));
     upload(req, res, (err) => {
         const files = req.files;
-        if (err == 'MulterError: Unexpected field')
+        if (err == 'MulterError: Unexpected field' || err == MulterError)
             return next(new ErrorHandler("One time you can uploads 10 photos", 404));
         if (err)
             return next(new ErrorHandler(`Could't upload, Please try again : ${err}`, 400));
@@ -77,22 +79,27 @@ export const photoUploadController = tryCatchFunction(async (req, res, next) => 
 });
 // get admin rooms ===========================================================
 export const getAdminRooms = tryCatchFunction(async (req, res, next) => {
-    try {
-        const AdminId = getAdminId(req, res, next);
-        const query = `SELECT * FROM ROOMS WHERE ADMIN_REF_ID = ?`;
-        db.query(query, AdminId, (err, result) => {
-            if (err)
-                return next(new ErrorHandler("Rooms Not Found ", 400));
-            const all_rooms = result.map((room) => {
-                return [room, "https://abhayvsk.vercel.app"];
-            });
-            res.status(200).json({
-                success: true,
-                rooms: all_rooms
-            });
+    const AdminId = getAdminId(req, res, next);
+    const query = `SELECT * FROM ROOMS WHERE ADMIN_REF_ID = ?`;
+    db.query(query, AdminId, async (err, result) => {
+        if (err || result.length == 0)
+            return next(new ErrorHandler("Rooms Not Found ", 404));
+        // const adminId = getAdminId(req, res, next)
+        // console.log(adminId);
+        // const photoId = await getPhotoUrlId(adminId as string);
+        // console.log(photoId);
+        // if (photoId.length === 0) return next(new ErrorHandler("There are no rooms ", 404));
+        // const allPhotos = await Promise.all(photoId.map((photoId) => {
+        //     return allPhotoByAdminId(photoId.PHOTO_URL_ID)
+        // }))
+        const allRooms = await Promise.all(result.map(async (room) => {
+            const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
+            // console.log(photos);
+            return [room, photos];
+        }));
+        res.status(200).json({
+            success: true,
+            rooms: allRooms
         });
-    }
-    catch {
-    }
+    });
 });
-// solve if not rooms have admins
