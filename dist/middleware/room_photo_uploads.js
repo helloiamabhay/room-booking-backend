@@ -3,14 +3,15 @@ import multer from "multer";
 import multerS3 from 'multer-s3';
 import { db } from "../app.js";
 const userS3 = new S3Client({
-    region: "ap-south-1",
+    region: process.env.AWS_REGION,
     credentials: {
-        accessKeyId: "AKIA2RVCYWOV6F42DZNL",
-        secretAccessKey: "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",
-    },
+        accessKeyId: process.env.ACCESS_KEY,
+        secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    }
 });
 // upload images on s3 bucket ======================================
 export const upload_func = (photo_url_id) => {
+    console.log("region : " + process.env.AWS_REGION + ", accessKeyId : " + process.env.ACCESS_KEY + ", secret key : " + process.env.SECRET_ACCESS_KEY);
     return multer({
         storage: multerS3({
             s3: userS3,

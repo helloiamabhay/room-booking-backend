@@ -6,11 +6,10 @@ import cookieParser from "cookie-parser"
 import { superErrorHandeler } from "./middleware/errorHandler.js";
 import users from "./routes/usersRoutes.js";
 import roomAdmins from "./routes/adminRoutes.js";
-// import { userSchema } from "./schema/userSchema.js";
-// import { adminSchema } from "./schema/adminSchema.js";
-// import { roomSchema } from "./schema/roomSchema.js";
-// import { roomPhotosSchema } from "./schema/roomPhotos.js";
-// import { userSchema } from "./schema/userSchema.js";
+import { userSchema } from "./schema/userSchema.js";
+import { adminSchema } from "./schema/adminSchema.js";
+import { roomSchema } from "./schema/roomSchema.js";
+import { roomPhotosSchema } from "./schema/roomPhotos.js";
 
 
 
@@ -40,10 +39,10 @@ db.connect(function (err) {
     }
 })
 
-// userSchema()
-// adminSchema()
-// roomSchema()
-// roomPhotosSchema()
+userSchema()
+adminSchema()
+roomSchema()
+roomPhotosSchema()
 
 
 
