@@ -6,10 +6,10 @@ import cookieParser from "cookie-parser"
 import { superErrorHandeler } from "./middleware/errorHandler.js";
 import users from "./routes/usersRoutes.js";
 import roomAdmins from "./routes/adminRoutes.js";
-import { userSchema } from "./schema/userSchema.js";
+import { S3Client } from "@aws-sdk/client-s3";
 import { adminSchema } from "./schema/adminSchema.js";
 import { roomSchema } from "./schema/roomSchema.js";
-import { roomPhotosSchema } from "./schema/roomPhotos.js";
+
 
 
 
@@ -28,6 +28,14 @@ const dbConfig: DBConfig = {
     database: process.env.DATABASE as string,
 };
 
+export const userS3 = new S3Client({
+    region: process.env.AWS_REGION as string,
+    credentials: {
+        accessKeyId: process.env.ACCESS_KEY as string,
+        secretAccessKey: process.env.SECRET_ACCESS_KEY as string,
+    }
+});
+
 // database connection 
 export const db = sql.createConnection(dbConfig);
 db.connect(function (err) {
@@ -39,10 +47,12 @@ db.connect(function (err) {
     }
 })
 
-userSchema()
-adminSchema()
-roomSchema()
-roomPhotosSchema()
+// adminSchema()
+// roomSchema()
+
+
+// deletePhotofunction()
+
 
 
 
@@ -55,8 +65,6 @@ roomPhotosSchema()
 
 app.use("/api/v1/users", users)
 app.use("/api/v1/admins", roomAdmins)
-
-
 
 
 app.use(superErrorHandeler)

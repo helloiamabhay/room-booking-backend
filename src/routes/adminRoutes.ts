@@ -2,6 +2,8 @@ import express from "express"
 import { adminLogout, createAdmin, loginAdmin } from "../controllers/adminController.js";
 import { getAdminRooms, roomController } from "../controllers/roomControllers.js";
 import { authAdmin } from "../middleware/userAuthentication.js";
+import { deletePhotofunction } from "../middleware/room_photo_uploads.js";
+// import { deletePhoto } from "../controllers/experiment.js";
 
 
 const router = express.Router();
@@ -11,7 +13,7 @@ router.route("/admin-login").post(loginAdmin)
 router.route("/logout").get(adminLogout)
 router.route("/create-room").post(authAdmin, roomController)
 router.route("/admin-rooms").get(getAdminRooms)
-
+router.route("/delete-photo").delete(authAdmin, deletePhotofunction)
 
 
 

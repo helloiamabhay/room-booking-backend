@@ -56,14 +56,13 @@ export const roomController = tryCatchFunction(async (req: Request<{}, {}, creat
 
 // get admin rooms ===========================================================
 export const getAdminRooms = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
-
-
     const AdminId = getAdminId(req, res, next);
     const query = `SELECT * FROM ROOMS WHERE ADMIN_REF_ID = ?`
     db.query<RowDataPacket[]>(query, AdminId, async (err, result) => {
         if (err || result.length == 0) return next(new ErrorHandler("Rooms Not Found ", 404))
 
         const allRooms = await Promise.all(result.map(async (room) => {
+
             const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
             // console.log(photos);
             return [room, photos]
@@ -77,3 +76,6 @@ export const getAdminRooms = tryCatchFunction(async (req: Request, res: Response
     })
 
 })
+
+
+
