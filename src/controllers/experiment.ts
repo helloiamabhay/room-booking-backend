@@ -1,34 +1,40 @@
-import { tryCatchFunction } from "../middleware/errorHandler.js";
-import { NextFunction, Request, Response, urlencoded } from "express";
+// import { NextFunction, Request, Response } from "express";
+// import { tryCatchFunction } from "../middleware/errorHandler.js";
+// import ErrorHandler from "../middleware/customError.js";
+// import { db } from "../app.js";
+// import { QueryResult, RowDataPacket } from "mysql2";
+// import { upload_func } from "../middleware/room_photo_uploads.js";
 
-import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import ErrorHandler from "../middleware/customError.js";
-import { userS3 } from "../app.js";
+// export const updatePhoto = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
 
+//     const photoId = req.params.id
+//     if (!photoId) return next(new ErrorHandler("Please provide PhotoId", 400))
 
+//     const upload = upload_func(photoId)
+//     upload(req, res, (err) => {
 
-// export const deletePhotofunction = async (req: Request, res: Response, next: NextFunction) => {
-//     const key = req.query.key;
-//     if (!key) return next(new ErrorHandler("Please provide key ", 404))
-//     // console.log("key is : " + key);
-//     const params = {
-//         Bucket: 'room-booking-app',
-//         Key: `rooms/${key}`
-//     }
+//         const files = req.files as Express.Multer.File[];
+//         if (err) {
+//             return next(new ErrorHandler("Error uploading file", 500));
+//         }
+//         if (!files || files.length === 0) {
+//             return next(new ErrorHandler("No files uploaded", 400));
+//         }
 
-//     try {
-//         await userS3.send(new DeleteObjectCommand(params))
-//         // console.log("photo deleted");
-//         res.status(200).json({
-//             success: true,
-//             message: `this photo deleted seccessfully : https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${key}`
+//         const img = files.map((file) => {
+//             return `https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${photoId}/${encodeURIComponent(file.originalname)}`
 //         })
 
-//     } catch (error) {
-//         // console.log("photo not deleted: ");
-//         next(new ErrorHandler("Photo not deleted try again", 404));
-//     }
-// }
+
+//         res.status(200).json({
+//             success: true,
+//             message: "Photo uploaded seccessfully",
+//             img: img
+//         })
+
+//     })
+
+// })
 
 
 

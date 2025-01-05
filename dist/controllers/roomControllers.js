@@ -56,3 +56,45 @@ export const getAdminRooms = tryCatchFunction(async (req, res, next) => {
         });
     });
 });
+export const updateRoom = tryCatchFunction(async (req, res, next) => {
+    const roomId = req.params.id;
+    if (!roomId)
+        return next(new ErrorHandler("Please provide Room Id", 404));
+    const { price, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body;
+    const query = ` UPDATE rooms SET PRICE = ?,ROOM_STATUS = ?, BED = ?, BED_SIT = ?, TOILET = ?, BATHROOM = ?, FAN = ?, KITCHEN = ?, TABLE_CHAIR = ?, ALMIRA = ?, WATER_SUPPLY = ?, WATER_DRINK = ?, PARKING_SPACE = ?, WIFI = ?, ELLECTRICITY_BILL = ?, RULES = ? WHERE ROOM_ID = ? `;
+    const value = [price, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, roomId];
+    db.query(query, value, (err, result) => {
+        if (err)
+            return next(new ErrorHandler("Database update failed : " + err, 500));
+        else {
+            res.status(200).json({
+                success: true,
+                message: "Room updated seccessfully",
+                room_data: value
+            });
+        }
+    });
+});
+export const updatePhoto = tryCatchFunction(async (req, res, next) => {
+    const photoId = req.params.id;
+    if (!photoId)
+        return next(new ErrorHandler("Please provide PhotoId", 400));
+    const upload = upload_func(photoId);
+    upload(req, res, (err) => {
+        const files = req.files;
+        if (err) {
+            return next(new ErrorHandler("Error uploading file", 500));
+        }
+        if (!files || files.length === 0) {
+            return next(new ErrorHandler("No files uploaded", 400));
+        }
+        const img = files.map((file) => {
+            return `https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${photoId}/${encodeURIComponent(file.originalname)}`;
+        });
+        res.status(200).json({
+            success: true,
+            message: "Photo uploaded seccessfully",
+            img: img
+        });
+    });
+});

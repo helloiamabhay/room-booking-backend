@@ -6,14 +6,6 @@ import { RowDataPacket } from "mysql2";
 import ErrorHandler from "./customError.js";
 import { NextFunction, Request, Response } from "express";
 
-
-
-
-
-
-
-
-
 // upload images on s3 bucket ======================================
 export const upload_func = (photo_url_id: string) => {
 
