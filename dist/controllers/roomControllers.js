@@ -28,7 +28,7 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
         if (err == 'MulterError: Unexpected field' || err == MulterError)
             return next(new ErrorHandler("One time you can uploads 10 photos", 404));
         if (err)
-            return next(new ErrorHandler(`Could't upload, Please try again : ${err}`, 400));
+            return next(new ErrorHandler(`Could't upload, Please Try again`, 400));
         if (!files || files.length === 0)
             return next(new ErrorHandler("Please select at-least one photo", 400));
         const imgs = files.map(file => `https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${photo_url_id}/${encodeURIComponent(file.originalname)}`);
@@ -83,7 +83,7 @@ export const updatePhoto = tryCatchFunction(async (req, res, next) => {
     upload(req, res, (err) => {
         const files = req.files;
         if (err) {
-            return next(new ErrorHandler("Error uploading file", 500));
+            return next(new ErrorHandler("Photo not uploaded", 500));
         }
         if (!files || files.length === 0) {
             return next(new ErrorHandler("No files uploaded", 400));
