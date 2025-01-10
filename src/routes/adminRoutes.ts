@@ -1,9 +1,8 @@
 import express from "express"
 import { adminLogout, createAdmin, loginAdmin } from "../controllers/adminController.js";
-import { getAdminRooms, roomController, updatePhoto, updateRoom } from "../controllers/roomControllers.js";
+import { deleteRoom, getAdminRooms, roomController, updatePhoto, updateRoom } from "../controllers/roomControllers.js";
 import { authAdmin } from "../middleware/userAuthentication.js";
 import { deletePhotofunction } from "../middleware/room_photo_uploads.js";
-import { deletePhoto, deleteRoom } from "../controllers/experiment.js";
 
 
 const router = express.Router();

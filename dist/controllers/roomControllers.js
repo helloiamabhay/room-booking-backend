@@ -1,10 +1,11 @@
 import { tryCatchFunction } from "../middleware/errorHandler.js";
 import ErrorHandler from "../middleware/customError.js";
 import { v4 as uuidv4 } from "uuid";
-import { db } from "../app.js";
+import { db, userS3 } from "../app.js";
 import { allPhotoByAdminId, upload_func } from "../middleware/room_photo_uploads.js";
 import { getAdminId } from "../middleware/userAuthentication.js";
 import { MulterError } from "multer";
+import { DeleteObjectsCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 // create room ======================================================================
 export const roomController = tryCatchFunction(async (req, res, next) => {
     const room_id = uuidv4();
@@ -97,4 +98,53 @@ export const updatePhoto = tryCatchFunction(async (req, res, next) => {
             img: img
         });
     });
+});
+export const deleteRoom = tryCatchFunction(async (req, res, next) => {
+    const roomId = req.query.roomId;
+    const PhotoId = req.query.photoId;
+    if (!roomId || !PhotoId)
+        return next(new ErrorHandler("Please provide credentials", 404));
+    const input = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Prefix: `rooms/${PhotoId}`,
+    };
+    try {
+        const command1 = new ListObjectsV2Command(input);
+        const data = await userS3.send(command1);
+        if (!data.Contents) {
+            return next(new ErrorHandler("No photos found to delete", 404));
+        }
+        const objects = data.Contents.map((item) => {
+            return { Key: item.Key };
+        });
+        const params = {
+            Bucket: process.env.S3_BUCKET_NAME,
+            Delete: {
+                Objects: objects
+            },
+            quite: false
+        };
+        const command2 = new DeleteObjectsCommand(params);
+        const result = await userS3.send(command2);
+        if (!result.Deleted || result.Deleted.length === 0) {
+            return next(new ErrorHandler("Room not deleted, try again", 500)); //hii
+        }
+        const query = `DELETE FROM ROOMS WHERE ROOM_ID = ?`;
+        const deleteRoomPromise = new Promise((resolve, reject) => {
+            db.query(query, roomId, (err, result) => {
+                if (err) {
+                    return reject(new ErrorHandler("Room not deleted, try again", 404));
+                }
+                resolve(result);
+            });
+        });
+        await Promise.all([result, deleteRoomPromise]);
+        res.status(200).json({
+            success: true,
+            message: "Room deleted successfully"
+        });
+    }
+    catch (error) {
+        next(new ErrorHandler("Room not deleted, try again", 404));
+    }
 });
