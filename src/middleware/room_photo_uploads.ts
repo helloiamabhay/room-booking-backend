@@ -2,7 +2,6 @@ import { DeleteObjectCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/cl
 import multer from "multer";
 import multerS3 from 'multer-s3';
 import { db, userS3 } from "../app.js";
-import { RowDataPacket } from "mysql2";
 import ErrorHandler from "./customError.js";
 import { NextFunction, Request, Response } from "express";
 

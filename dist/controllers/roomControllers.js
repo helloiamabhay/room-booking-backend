@@ -13,13 +13,13 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
     const upload = upload_func(String(photo_url_id));
     upload(req, res, (err) => {
         const admin_ref_id = getAdminId(req, res, next);
-        const { price, rating, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body;
-        if (!price || !rating || !room_status || !bed || !bed_sit || !toilet || !bathroom || !fan || !kitchen || !table_chair || !almira || !water_supply || !water_drink || !parking_space || !wifi || !ellectricity_bill || !rules)
+        const { price, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body;
+        if (!price || !room_status || !bed || !bed_sit || !toilet || !bathroom || !fan || !kitchen || !table_chair || !almira || !water_supply || !water_drink || !parking_space || !wifi || !ellectricity_bill || !rules)
             return next(new ErrorHandler("please enter all fields", 400));
-        const query = `INSERT INTO ROOMS(ROOM_ID,ADMIN_REF_ID,PRICE,RATING,ROOM_STATUS,BED,BED_SIT,TOILET,BATHROOM,FAN,KITCHEN,TABLE_CHAIR,ALMIRA,WATER_SUPPLY,WATER_DRINK,PARKING_SPACE,WIFI,ELLECTRICITY_BILL,RULES,PHOTO_URL_ID) VALUES 
-    (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+        const query = `INSERT INTO ROOMS(ROOM_ID,ADMIN_REF_ID,PRICE,ROOM_STATUS,BED,BED_SIT,TOILET,BATHROOM,FAN,KITCHEN,TABLE_CHAIR,ALMIRA,WATER_SUPPLY,WATER_DRINK,PARKING_SPACE,WIFI,ELLECTRICITY_BILL,RULES,PHOTO_URL_ID) VALUES 
+    (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
         // values -----------------------------
-        const values = [room_id, admin_ref_id, price, rating, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id];
+        const values = [room_id, admin_ref_id, price, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id];
         db.query(query, values, (err, result) => {
             if (err) {
                 return next(new ErrorHandler(`Error is : ${err}`, 400));

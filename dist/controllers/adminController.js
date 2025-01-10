@@ -102,13 +102,3 @@ export const adminLogout = tryCatchFunction(async (req, res, next) => {
         message: "Logged Out Seccessfully!"
     });
 });
-// export const getId = (req: Request, res: Response) => {
-//     const token = req.cookies['userAuthToken'];
-//     try {
-//         const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-//         const adminId = (decoded as JwtPayload).adminId as string;
-//         res.send(`Admin ID: ${adminId}`);
-//     } catch (error) {
-//         res.status(401).send('Invalid token');
-//     }
-// }
