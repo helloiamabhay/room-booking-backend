@@ -1,5 +1,5 @@
 import express from "express";
-import sql from "mysql2";
+import sql from "mysql2/promise";
 import { config } from "dotenv";
 import { DBConfig } from "./types/types.js";
 import cookieParser from "cookie-parser"
@@ -20,13 +20,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// set auth of database
-const dbConfig: DBConfig = {
-    host: process.env.HOST as string,
-    user: process.env.USER as string,
-    password: process.env.PASSWORD as string,
-    database: process.env.DATABASE as string,
-};
 
 export const userS3 = new S3Client({
     region: process.env.AWS_REGION as string,
@@ -37,15 +30,25 @@ export const userS3 = new S3Client({
 });
 
 // database connection 
-export const db = sql.createConnection(dbConfig);
-db.connect(function (err) {
-    if (err) {
-        console.error("DB not connected")
-    }
-    else {
-        console.log("db connected");
-    }
-})
+export const db = sql.createPool({
+    host: process.env.HOST as string,
+    user: process.env.USER as string,
+    password: process.env.PASSWORD as string,
+    database: process.env.DATABASE as string,
+    connectionLimit: 10,
+    idleTimeout: 30000
+
+});
+
+db.getConnection()
+    .then((connection: sql.PoolConnection) => {
+        console.log('Database connected successfully');
+        connection.release();
+    })
+    .catch((err: sql.QueryError) => {
+        console.error('Error connecting to the database:', err);
+    });
+
 
 // adminSchema()
 // roomSchema()

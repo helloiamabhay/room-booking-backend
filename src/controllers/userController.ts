@@ -25,50 +25,50 @@ export const createUser = tryCatchFunction(async (req: Request<{}, {}, createUse
 
     if (!validator.isEmail(email)) return next(new ErrorHandler("Please enter valid email.", 400));
 
-    // check user exist or not 
-    const existUserPromise = new Promise<boolean>((resolve, reject) => {
-        db.query<RowDataPacket[]>(`SELECT * FROM USERS WHERE phone=? OR email=?`, [phone, email], (err, result) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(result.length > 0);
+    try {
+        const connection = await db.getConnection();
+        try {
+            const [rows] = await connection.query<RowDataPacket[]>(`SELECT * FROM USERS WHERE phone=? OR email=?`, [phone, email]);
+            connection.release();
+            if (rows.length > 0) {
+                return next(new ErrorHandler("User already exists", 400));
             }
-        })
-    })
 
-    const userExists = await existUserPromise;
-    if (userExists) {
-        return next(new ErrorHandler("User already exists", 400));
-    }
+            const hashedPassword = await bcrypt.hash(password, 10)
 
-    // password hashing
-    const hashedPassword = await bcrypt.hash(password, 10)
+            // query
+            const query = `INSERT INTO USERS (userId,first_name,last_name,password,email,phone,altPhone,state,district,town,pinCode,gender) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`
+            const userId = uuidv4();
 
-    // query
-    const query = `INSERT INTO USERS (userId,first_name,last_name,password,email,phone,altPhone,state,district,town,pinCode,gender) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`
-    const userId = uuidv4();
-    // values for query
-    const values = [userId, first_name, last_name, hashedPassword, email, phone, altPhone, state, district, town, pinCode, gender]
-    // run query 
-    db.query(query, values, (err, result) => {
-        if (err) return next(new ErrorHandler(`err is : ${err.message}`, 404));
-        else {
-            // generate jwt token 
+            const values = [userId, first_name, last_name, hashedPassword, email, phone, altPhone, state, district, town, pinCode, gender]
+
+            await connection.query(query, values);
+            connection.release();
+
             const token = jwt.sign({ userId }, process.env.JWT_SECRET as string, { expiresIn: '15d' });
-            // set cookie with jwt token 
+
             res.cookie('userAuthToken', token, {
                 maxAge: 15 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
                 secure: true,
                 sameSite: 'strict'
-            });
 
+            })
             res.status(201).json({
                 success: true,
-                message: "user created seccessfuly"
+                message: `Dear ${first_name},Account created!`
             })
+        } catch (error) {
+            connection.release();
+            return next(new ErrorHandler("DB request failed Try again: " + error, 500))
+
         }
-    })
+
+    } catch (error) {
+        return next(new ErrorHandler("Failed to get database connection.", 500));
+    }
+
+
 })
 
 export const loginUser = tryCatchFunction(async (req: Request<{}, {}, loginDataType>, res: Response, next: NextFunction) => {
@@ -77,39 +77,47 @@ export const loginUser = tryCatchFunction(async (req: Request<{}, {}, loginDataT
 
     if (!phoneOrEmail || !password) return next(new ErrorHandler("Please enter all fields !", 400))
 
-    // check user exist or not 
-    const existUserPromise = new Promise<RowDataPacket[]>((resolve, reject) => {
-        db.query<RowDataPacket[]>(`SELECT * FROM USERS WHERE phone=? OR email=?`, [phoneOrEmail, phoneOrEmail], (err, result) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(result);
+
+    try {
+        const connection = await db.getConnection();
+        try {
+            const value = [phoneOrEmail, phoneOrEmail]
+            const [rows] = await connection.query<RowDataPacket[]>(`SELECT userId,first_name,password FROM USERS WHERE phone=? OR email=?`, value);
+
+            connection.release();
+            if (rows.length === 0) {
+                return next(new ErrorHandler("Incorrect Password or User!", 401));
             }
-        })
-    })
+            const user = rows[0];
+            const isPasswordValid = await bcrypt.compare(password, user.password)
 
-    const userExists = await existUserPromise;
+            if (!isPasswordValid) {
+                return next(new ErrorHandler("Incorrect Password or User!", 401));
+            }
 
-    if (userExists.length < 1) return next(new ErrorHandler("Incorrect Password or User!", 401));
+            const token = jwt.sign({ userId: user.userId }, process.env.JWT_SECRET as string, { expiresIn: '15d' });
 
-    const user = userExists[0];
-    const isPasswordValid = await bcrypt.compare(password, user.password)
-    if (!isPasswordValid) return next(new ErrorHandler("Incorrect Password or Id!", 401));
+            res.cookie('userAuthToken', token, {
+                maxAge: 15 * 24 * 60 * 60 * 1000,
+                httpOnly: true,
+                secure: true,
+                sameSite: 'strict'
+            })
 
+            res.status(200).json({
+                success: true,
+                message: `Welcome Back ${user.first_name}! `
+            })
 
-    const token = jwt.sign({ userId: user.userId }, process.env.JWT_SECRET as string, { expiresIn: '15d' });
+        } catch (error) {
+            connection.release();
+            return next(new ErrorHandler("DB request failed Try again: ", 500))
 
-    res.cookie('userAuthToken', token, {
-        maxAge: 15 * 24 * 60 * 60 * 1000,
-        httpOnly: true,
-        secure: true,
-        sameSite: 'strict'
-    })
+        }
+    } catch (error) {
+        return next(new ErrorHandler("Failed to get database connection.", 500));
 
-    res.status(200).json({
-        success: true,
-        message: `Welcome Back ${user.first_name}! `
-    })
+    }
 
 })
 

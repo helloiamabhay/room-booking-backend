@@ -18,11 +18,11 @@ GENDER VARCHAR(10) CHECK (gender IN ('Male', 'Female', 'Other')) NOT NULL,
 createdAt DATETIME DEFAULT now()
 )`
 
-    db.query(adminTable, (err, result) => {
+    // db.query(adminTable, (err, result) => {
 
-        if (err) throw err;
-        console.log("admin table created abhay ji");
+    //     if (err) throw err;
+    //     console.log("admin table created abhay ji");
 
-    })
+    // })
 
 }

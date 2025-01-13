@@ -18,7 +18,7 @@ export const roomController = tryCatchFunction(async (req: Request<{}, {}, creat
     const photo_url_id = uuidv4();
 
     const upload = upload_func(String(photo_url_id));
-    upload(req, res, (err) => {
+    upload(req, res, async (err) => {
 
         const admin_ref_id = getAdminId(req, res, next)
 
@@ -26,22 +26,32 @@ export const roomController = tryCatchFunction(async (req: Request<{}, {}, creat
 
         if (!price || !room_status || !bed || !bed_sit || !toilet || !bathroom || !fan || !kitchen || !table_chair || !almira || !water_supply || !water_drink || !parking_space || !wifi || !ellectricity_bill || !rules) return next(new ErrorHandler("please enter all fields", 400));
 
-        const query = `INSERT INTO ROOMS(ROOM_ID,ADMIN_REF_ID,PRICE,ROOM_STATUS,BED,BED_SIT,TOILET,BATHROOM,FAN,KITCHEN,TABLE_CHAIR,ALMIRA,WATER_SUPPLY,WATER_DRINK,PARKING_SPACE,WIFI,ELLECTRICITY_BILL,RULES,PHOTO_URL_ID) VALUES 
-    (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
-
-        // values -----------------------------
         const values = [room_id, admin_ref_id, price, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id]
 
-        db.query(query, values, (err, result) => {
-            if (err) {
-                return next(new ErrorHandler(`Error is : ${err}`, 400))
+        try {
+            const connection = await db.getConnection();
+            try {
+                const query = `INSERT INTO ROOMS(ROOM_ID,ADMIN_REF_ID,PRICE,ROOM_STATUS,BED,BED_SIT,TOILET,BATHROOM,FAN,KITCHEN,TABLE_CHAIR,ALMIRA,WATER_SUPPLY,WATER_DRINK,PARKING_SPACE,WIFI,ELLECTRICITY_BILL,RULES,PHOTO_URL_ID) VALUES 
+    (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+
+
+                connection.query(query, values)
+                connection.release()
+
+
+            } catch (error) {
+                connection.release()
+                return next(new ErrorHandler("Room not created Try again", 404))
             }
-        })
+        } catch (error) {
+            return next(new ErrorHandler("DB connection failed try again ", 404))
+
+        }
 
         const files = req.files as Express.Multer.File[];
         if (err == 'MulterError: Unexpected field' || err == MulterError) return next(new ErrorHandler("One time you can uploads 10 photos", 404));
         if (err) return next(new ErrorHandler(`Could't upload, Please Try again`, 400));
-        if (!files || files.length === 0) return next(new ErrorHandler("Please select at-least one photo", 400));
+        if (!files || files.length === 0) return next(new ErrorHandler("Please select at-least one photo", 404));
 
         const imgs = files.map(file => `https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${photo_url_id}/${encodeURIComponent(file.originalname)}`)
 
@@ -56,26 +66,34 @@ export const roomController = tryCatchFunction(async (req: Request<{}, {}, creat
 })
 
 // get admin rooms ===========================================================
+// check this API
 export const getAdminRooms = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
     const AdminId = getAdminId(req, res, next);
     const query = `SELECT * FROM ROOMS WHERE ADMIN_REF_ID = ?`
-    db.query<RowDataPacket[]>(query, AdminId, async (err, result) => {
-        if (err || result.length == 0) return next(new ErrorHandler("Rooms Not Found ", 404))
 
-        const allRooms = await Promise.all(result.map(async (room) => {
+    try {
+        const connection = await db.getConnection()
+        try {
+            const [rows] = await connection.query<RowDataPacket[]>(query, AdminId)
+            connection.release()
 
-            const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
-            // console.log(photos);
-            return [room, photos]
-        })
-        )
+            const allRooms = await Promise.all(rows.map(async (room) => {
+                const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
+                return [room, photos]
 
-        res.status(200).json({
-            success: true,
-            rooms: allRooms
-        })
-    })
+            }))
+            res.status(200).json({
+                success: true,
+                rooms: allRooms
+            })
 
+        } catch (error) {
+            connection.release()
+            return next(new ErrorHandler("Rooms Not Found Try again", 404))
+        }
+    } catch (error) {
+        return next(new ErrorHandler("Failed to connect database", 500))
+    }
 })
 
 
@@ -90,18 +108,22 @@ export const updateRoom = tryCatchFunction(async (req: Request, res: Response, n
 
     const value = [price, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, roomId]
 
-    db.query<RowDataPacket[]>(query, value, (err, result) => {
-        if (err) return next(new ErrorHandler("Database update failed : " + err, 500));
-        else {
+    try {
+        const connection = await db.getConnection()
+        try {
+            connection.query(query, value)
+            connection.release();
             res.status(200).json({
                 success: true,
-                message: "Room updated seccessfully",
-                room_data: value
-
+                message: "Room updated seccessfully"
             })
+        } catch (error) {
+            connection.release();
+            return next(new ErrorHandler("Room updation failed", 500));
         }
-    })
-
+    } catch (error) {
+        return next(new ErrorHandler("database connection failed", 500));
+    }
 
 })
 
@@ -173,20 +195,23 @@ export const deleteRoom = tryCatchFunction(async (req: Request, res: Response, n
             return next(new ErrorHandler("Room not deleted, try again", 500));//hii
         }
         const query = `DELETE FROM ROOMS WHERE ROOM_ID = ?`;
-        const deleteRoomPromise = new Promise((resolve, reject) => {
-            db.query(query, roomId, (err, result) => {
-                if (err) {
-                    return reject(new ErrorHandler("Room not deleted, try again", 404));
-                }
-                resolve(result);
-            });
-        });
 
-        await Promise.all([result, deleteRoomPromise]);
-        res.status(200).json({
-            success: true,
-            message: "Room deleted successfully"
-        });
+        const connection = await db.getConnection()
+        try {
+
+            const deleteRoom = await connection.query(query, roomId)
+            connection.release();
+
+            await Promise.all([result, deleteRoom])
+            res.status(200).json({
+                success: true,
+                message: "Room deleted successfully"
+            });
+
+        } catch (error) {
+            connection.release();
+            next(new ErrorHandler("Room not deleted, try again", 404));
+        }
 
     } catch (error) {
         next(new ErrorHandler("Room not deleted, try again", 404));

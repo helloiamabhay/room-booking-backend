@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import validator from "validator";
 import ErrorHandler from "../middleware/customError.js";
 import jwt from "jsonwebtoken";
+// create admin *********************************************************************************************
 export const createAdmin = tryCatchFunction(async (req, res, next) => {
     const { first_name, last_name, phone, email, password, hostel_name, state, district, town_name, pinCode, gender } = req.body;
     // validate inputs
@@ -15,33 +16,22 @@ export const createAdmin = tryCatchFunction(async (req, res, next) => {
         return next(new ErrorHandler("Please enter valid phone number.", 400));
     if (!validator.isEmail(email))
         return next(new ErrorHandler("Please enter valid email Id.", 400));
-    const existAdminPromise = new Promise((resolve, reject) => {
-        db.query(`SELECT * FROM ADMINS WHERE PHONE=? OR EMAIL=?`, [phone, email], (err, result) => {
-            if (err) {
-                reject(err);
+    try {
+        const connection = await db.getConnection();
+        try {
+            const [rows] = await connection.query(`SELECT PHONE,EMAIL FROM ADMINS WHERE PHONE=? OR EMAIL=?`, [phone, email]);
+            connection.release();
+            if (rows.length > 0) {
+                return next(new ErrorHandler("User already exists!", 400));
             }
-            else {
-                resolve(result.length > 0);
-            }
-        });
-    });
-    //  check user exists
-    const existAdmin = await existAdminPromise;
-    if (existAdmin) {
-        return next(new ErrorHandler("User already exists!", 400));
-    }
-    // hashing password
-    const hashedPassword = await bcrypt.hash(password, 10);
-    // query 
-    const query = `INSERT INTO ADMINS(ADMIN_ID,FIRST_NAME,LAST_NAME,PHONE,EMAIL,PASSWORD,HOSTEL_NAME,STATE,DISTRICT,PINCODE,TOWN_NAME,GENDER) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) `;
-    const admin_id = uuidv4();
-    const values = [admin_id, first_name, last_name, phone, email, hashedPassword, hostel_name, state, district, pinCode, town_name, gender];
-    // run query
-    db.query(query, values, (err, result) => {
-        if (err)
-            return next(new ErrorHandler(`Error is : ${err.message}`, 400));
-        else {
-            // generate jwt token
+            // Hashing password
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const admin_id = uuidv4();
+            // Insert new admin
+            const query = `INSERT INTO ADMINS (ADMIN_ID, FIRST_NAME, LAST_NAME, PHONE, EMAIL, PASSWORD, HOSTEL_NAME,STATE, DISTRICT,PINCODE ,TOWN_NAME, GENDER) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?)`;
+            const values = [admin_id, first_name, last_name, phone, email, hashedPassword, hostel_name, state, district, pinCode, town_name, gender];
+            await connection.query(query, values);
+            connection.release();
             const token = jwt.sign({ admin_id }, process.env.JWT_SECRET, { expiresIn: '10d' });
             // set cookie with jwt token
             res.cookie('adminAuthToken', token, {
@@ -55,42 +45,52 @@ export const createAdmin = tryCatchFunction(async (req, res, next) => {
                 message: `Dear ${first_name},Account created!`
             });
         }
-    });
+        catch (error) {
+            connection.release();
+            return next(new ErrorHandler("DB request failed Try again: " + error, 500));
+        }
+    }
+    catch (error) {
+        return next(new ErrorHandler("Failed to get database connection.", 500));
+    }
 });
-// login admin
+// login admin  *********************************************************************************************
 export const loginAdmin = tryCatchFunction(async (req, res, next) => {
     const { phoneOrEmail, password } = req.body;
     if (!phoneOrEmail || !password)
         return next(new ErrorHandler("Please enter all fields", 400));
-    const existUserPromise = new Promise((resolve, reject) => {
-        db.query(`SELECT * FROM ADMINS WHERE PHONE=? OR EMAIL=?`, [phoneOrEmail, phoneOrEmail], (err, result) => {
-            if (err) {
-                reject(err);
-            }
-            else {
-                resolve(result);
-            }
-        });
-    });
-    const adminExist = await existUserPromise;
-    if (adminExist.length < 1)
-        return next(new ErrorHandler("Wrong Password.", 401));
-    // password verification
-    const admin = adminExist[0];
-    const isValidPassword = await bcrypt.compare(password, admin.PASSWORD);
-    if (!isValidPassword)
-        return next(new ErrorHandler("Wrong Password.", 401));
-    const token = jwt.sign({ admin_id: admin.ADMIN_ID }, process.env.JWT_SECRET, { expiresIn: '10d' });
-    res.cookie('adminAuthToken', token, {
-        maxAge: 10 * 24 * 60 * 60 * 1000,
-        httpOnly: true,
-        sameSite: "strict"
-    });
-    res.status(201).json({
-        success: true,
-        message: `Welcome Back ${admin.FIRST_NAME}! `
-    });
+    try {
+        const connection = await db.getConnection();
+        try {
+            const values = [phoneOrEmail, phoneOrEmail];
+            const [row] = await connection.query(`SELECT ADMIN_ID,FIRST_NAME,PHONE ,EMAIL,PASSWORD FROM ADMINS WHERE PHONE=? OR EMAIL=?`, values);
+            connection.release();
+            if (row.length === 0)
+                return next(new ErrorHandler("User does not exists", 404));
+            const isValidPassword = await bcrypt.compare(password, row[0].PASSWORD);
+            if (!isValidPassword)
+                return next(new ErrorHandler("Wrong Password.", 401));
+            const token = jwt.sign({ admin_id: row[0].ADMIN_ID }, process.env.JWT_SECRET, { expiresIn: '10d' });
+            res.cookie('adminAuthToken', token, {
+                maxAge: 10 * 24 * 60 * 60 * 1000,
+                httpOnly: true,
+                sameSite: "strict"
+            });
+            res.status(201).json({
+                success: true,
+                message: `Welcome Back ${row[0].FIRST_NAME}! `
+            });
+        }
+        catch (error) {
+            connection.release();
+            return next(new ErrorHandler("DB request failed Try again", 500));
+        }
+    }
+    catch {
+        return next(new ErrorHandler("Failed to get database connection.", 500));
+    }
 });
+// logout admin *********************************************************************************************
 export const adminLogout = tryCatchFunction(async (req, res, next) => {
     res.clearCookie('adminAuthToken', {
         httpOnly: true,
