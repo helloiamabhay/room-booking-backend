@@ -13,10 +13,26 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
     const upload = upload_func(String(photo_url_id));
     upload(req, res, async (err) => {
         const admin_ref_id = getAdminId(req, res, next);
-        const { price, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body;
-        if (!price || !room_status || !bed || !bed_sit || !toilet || !bathroom || !fan || !kitchen || !table_chair || !almira || !water_supply || !water_drink || !parking_space || !wifi || !ellectricity_bill || !rules)
+        const { price, address, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body;
+        let latitude;
+        let longitude;
+        let address1;
+        try {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                latitude = position.coords.latitude;
+                longitude = position.coords.longitude;
+                const geocoder = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+                console.log(geocoder);
+                const response = await fetch(geocoder);
+                const data = response.json();
+                console.log(data);
+            });
+        }
+        catch (error) {
+        }
+        if (!price || !address || !room_status || !bed || !bed_sit || !toilet || !bathroom || !fan || !kitchen || !table_chair || !almira || !water_supply || !water_drink || !parking_space || !wifi || !ellectricity_bill || !rules)
             return next(new ErrorHandler("please enter all fields", 400));
-        const values = [room_id, admin_ref_id, price, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id];
+        const values = [room_id, admin_ref_id, price, address, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id];
         try {
             const connection = await db.getConnection();
             try {

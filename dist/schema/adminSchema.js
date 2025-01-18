@@ -1,4 +1,5 @@
-export function adminSchema() {
+import { db } from "../app.js";
+export async function adminSchema() {
     const adminTable = `CREATE TABLE IF NOT EXISTS ADMINS ( 
 ADMIN_ID VARCHAR(200) PRIMARY KEY,
 FIRST_NAME  VARCHAR(30) NOT NULL,
@@ -14,8 +15,14 @@ TOWN_NAME VARCHAR(500) NOT NULL ,
 GENDER VARCHAR(10) CHECK (gender IN ('Male', 'Female', 'Other')) NOT NULL,
 createdAt DATETIME DEFAULT now()
 )`;
-    // db.query(adminTable, (err, result) => {
-    //     if (err) throw err;
-    //     console.log("admin table created abhay ji");
-    // })
+    const connection = await db.getConnection();
+    try {
+        await connection.query(adminTable);
+        connection.release();
+        console.log("admin table created");
+    }
+    catch (error) {
+        connection.release();
+        console.log("admin table not created");
+    }
 }

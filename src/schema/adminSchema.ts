@@ -1,6 +1,7 @@
 import { db } from "../app.js"
+import ErrorHandler from "../middleware/customError.js"
 
-export function adminSchema() {
+export async function adminSchema() {
 
     const adminTable = `CREATE TABLE IF NOT EXISTS ADMINS ( 
 ADMIN_ID VARCHAR(200) PRIMARY KEY,
@@ -18,11 +19,16 @@ GENDER VARCHAR(10) CHECK (gender IN ('Male', 'Female', 'Other')) NOT NULL,
 createdAt DATETIME DEFAULT now()
 )`
 
-    // db.query(adminTable, (err, result) => {
+    const connection = await db.getConnection()
+    try {
+        await connection.query(adminTable)
+        connection.release()
+        console.log("admin table created");
 
-    //     if (err) throw err;
-    //     console.log("admin table created abhay ji");
+    } catch (error) {
+        connection.release()
+        console.log("admin table not created");
 
-    // })
+    }
 
 }

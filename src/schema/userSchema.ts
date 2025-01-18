@@ -1,5 +1,5 @@
 import { db } from "../app.js";
-export function userSchema() {
+export async function userSchema() {
     const userTable = `
     CREATE TABLE IF NOT EXISTS users (
         userId VARCHAR(200) PRIMARY KEY NOT NULL UNIQUE,
@@ -17,10 +17,16 @@ export function userSchema() {
         createdAt DATETIME DEFAULT now()
     );
     `;
-    db.query(userTable, function (err, result) {
-        if (err) throw err;
-        console.log("user table created abhay ji!");
-    })
+    const connection = await db.getConnection()
+    try {
+        await connection.query(userTable)
+        connection.release()
+        console.log("user table created");
+
+    } catch (error) {
+        connection.release()
+        console.log("user table not created");
+    }
 
 };
 

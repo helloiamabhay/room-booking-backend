@@ -1,9 +1,12 @@
 import { db } from "../app.js";
-export function roomSchema() {
+export async function roomSchema() {
     const roomTable = `CREATE TABLE IF NOT EXISTS ROOMS(
         ROOM_ID VARCHAR(200) PRIMARY KEY NOT NULL UNIQUE,
         ADMIN_REF_ID VARCHAR(200) NOT NULL,
         PRICE INT NOT NULL,
+        ADDRESS VARCHAR(255) NOT NULL,
+        LATITUDE DECIMAL(10, 8) DEFAULT NULL,
+        LONGITUDE DECIMAL(11, 8) DEFAULT NULL,
         RATING FLOAT DEFAULT 0,
         RATING_COUNT_USER INT DEFAULT 0,
         ROOM_STATUS VARCHAR(5) NOT NULL CHECK (ROOM_STATUS IN ('TRUE', 'FALSE')),
@@ -23,11 +26,17 @@ export function roomSchema() {
         RULES VARCHAR(255) NOT NULL, 
         PHOTO_URL_ID VARCHAR(200) NOT NULL UNIQUE,
         CREATEDAT DATETIME DEFAULT NOW(),
-        FOREIGN KEY (ADMIN_REF_ID) REFERENCES ADMINS(ADMIN_ID) ON DELETE CASCADE
+        FOREIGN KEY (ADMIN_REF_ID) REFERENCES ADMINS(ADMIN_ID) ON DELETE CASCADE,
+        INDEX idx_address_price_room_status (ADDRESS, PRICE, ROOM_STATUS)
         )`;
-    db.query(roomTable, (err, result) => {
-        if (err)
-            throw err;
-        console.log("room table created abhay ji");
-    });
+    const connection = await db.getConnection();
+    try {
+        await connection.query(roomTable);
+        connection.release();
+        console.log("room table created");
+    }
+    catch (error) {
+        connection.release();
+        console.log("room table not created");
+    }
 }
