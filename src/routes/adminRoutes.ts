@@ -17,7 +17,7 @@ router.route("/delete-photo").delete(authAdmin, deletePhotofunction)
 router.route("/update-room/:id").put(authAdmin, updateRoom)
 router.route("/update-photo/:id").post(authAdmin, updatePhoto)
 router.route("/delete-room").delete(authAdmin, deleteRoom)
-router.route("/testing").get(testing)
+router.route("/testing").post(testing)
 
 
 
