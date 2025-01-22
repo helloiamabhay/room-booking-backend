@@ -9,44 +9,55 @@ import { tryCatchFunction } from "../middleware/errorHandler.js";
 import { createRoomTypes } from "../types/types.js";
 
 
+export const testing = tryCatchFunction(async (req: Request<{}, {}, createRoomTypes>, res: Response, next: NextFunction) => {
 
-export const searching = async (req: Request, res: Response, next: NextFunction) => {
+    const room_id = uuidv4();
+    const photo_url_id = uuidv4();
+    // fix bug in future to dont upload photo without require info
+    const upload = upload_func(String(photo_url_id));
+    upload(req, res, async (err) => {
 
-    const { price, address } = req.body;
+        const admin_ref_id = getAdminId(req, res, next)
 
-    if (!price || !address) return next(new ErrorHandler("please enter all fields", 400));
+        const { price, locality, district, latitude, longitude, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body
 
-    const values = [price, address]
+        // take cordinates from frontend
+        if (!price || !locality || !district || !room_status || !bed || !bed_sit || !toilet || !bathroom || !fan || !kitchen || !table_chair || !almira || !water_supply || !water_drink || !parking_space || !wifi || !ellectricity_bill || !rules) return next(new ErrorHandler("please enter all fields", 400));
 
-    try {
-        const connection = await db.getConnection();
+
+        const values = [room_id, admin_ref_id, price, locality, district, latitude, longitude, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id]
+
         try {
-            // take cordinates from frontend and add them to the query
-            let user_latitude;
-            let user_longitude;
-            if (user_latitude && user_longitude) {
-                const query = `SELECT *, (6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance FROM  ROOMS WHERE  PRICE < ? AND ADDRESS LIKE '%?%' AND ROOM_STATUS=false ORDER BY distance`;
-                const [rows] = await connection.query(query, values);
-                res.send(rows);
-            }
-            else {
-                const query = `SELECT * FROM ROOMS WHERE PRICE < ? AND ADDRESS = ? AND ROOM_STATUS=false`;
-                const [rows] = await connection.query(query, values);
-                res.send(rows);
-            }
+            const connection = await db.getConnection();
+            try {
+                const query = `INSERT INTO ROOMS(ROOM_ID,ADMIN_REF_ID,PRICE,LOCALITY,DISTRICT,LATITUDE,LONGITUDE,ROOM_STATUS,BED,BED_SIT,TOILET,BATHROOM,FAN,KITCHEN,TABLE_CHAIR,ALMIRA,WATER_SUPPLY,WATER_DRINK,PARKING_SPACE,WIFI,ELLECTRICITY_BILL,RULES,PHOTO_URL_ID) VALUES 
+    (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 
-
+                connection.query(query, values)
+                connection.release()
+            } catch (error) {
+                connection.release()
+                return next(new ErrorHandler("Room not created Try again", 404))
+            }
         } catch (error) {
+            return next(new ErrorHandler("DB connection failed try again ", 404))
 
         }
-    } catch (error) {
 
-    }
+        const files = req.files as Express.Multer.File[];
+        if (err == 'MulterError: Unexpected field' || err == MulterError) return next(new ErrorHandler("One time you can uploads 10 photos", 404));
+        if (err) return next(new ErrorHandler(`Could't upload, Please Try again`, 400));
+        if (!files || files.length === 0) return next(new ErrorHandler("Please select at-least one photo", 404));
+
+        const imgs = files.map(file => `https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${photo_url_id}/${encodeURIComponent(file.originalname)}`)
 
 
+        res.status(201).json({
+            room: values,
+            imgs: imgs
 
+        })
+    })
 
-
-
-}
+})
 

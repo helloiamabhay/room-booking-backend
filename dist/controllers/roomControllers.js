@@ -10,34 +10,20 @@ import { DeleteObjectsCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 export const roomController = tryCatchFunction(async (req, res, next) => {
     const room_id = uuidv4();
     const photo_url_id = uuidv4();
+    // fix bug in future to dont upload photo without require info
     const upload = upload_func(String(photo_url_id));
     upload(req, res, async (err) => {
         const admin_ref_id = getAdminId(req, res, next);
-        const { price, address, latitude, longitude, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body;
-        let address0;
-        try {
-            // i have to take cordinates from frontend and fetch address
-            if (latitude && longitude) {
-                const geocoder = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
-                const response = await fetch(geocoder);
-                const data = await response.json();
-                address0 = data.display_name;
-            }
-            else {
-                address0 = address;
-            }
-        }
-        catch (error) {
-            console.log("address not fetched by real location");
-        }
-        if (!price || address0 === undefined || !room_status || !bed || !bed_sit || !toilet || !bathroom || !fan || !kitchen || !table_chair || !almira || !water_supply || !water_drink || !parking_space || !wifi || !ellectricity_bill || !rules)
+        const { price, locality, district, latitude, longitude, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body;
+        // take cordinates from frontend
+        if (!price || !locality || !district || !room_status || !bed || !bed_sit || !toilet || !bathroom || !fan || !kitchen || !table_chair || !almira || !water_supply || !water_drink || !parking_space || !wifi || !ellectricity_bill || !rules)
             return next(new ErrorHandler("please enter all fields", 400));
-        const values = [room_id, admin_ref_id, price, address0, latitude, longitude, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id];
+        const values = [room_id, admin_ref_id, price, locality, district, latitude, longitude, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id];
         try {
             const connection = await db.getConnection();
             try {
-                const query = `INSERT INTO ROOMS(ROOM_ID,ADMIN_REF_ID,PRICE,ADDRESS,LATITUDE,LONGITUDE,ROOM_STATUS,BED,BED_SIT,TOILET,BATHROOM,FAN,KITCHEN,TABLE_CHAIR,ALMIRA,WATER_SUPPLY,WATER_DRINK,PARKING_SPACE,WIFI,ELLECTRICITY_BILL,RULES,PHOTO_URL_ID) VALUES 
-    (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+                const query = `INSERT INTO ROOMS(ROOM_ID,ADMIN_REF_ID,PRICE,LOCALITY,DISTRICT,LATITUDE,LONGITUDE,ROOM_STATUS,BED,BED_SIT,TOILET,BATHROOM,FAN,KITCHEN,TABLE_CHAIR,ALMIRA,WATER_SUPPLY,WATER_DRINK,PARKING_SPACE,WIFI,ELLECTRICITY_BILL,RULES,PHOTO_URL_ID) VALUES 
+    (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
                 connection.query(query, values);
                 connection.release();
             }

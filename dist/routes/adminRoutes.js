@@ -3,7 +3,7 @@ import { adminLogout, createAdmin, loginAdmin } from "../controllers/adminContro
 import { deleteRoom, getAdminRooms, roomController, updatePhoto, updateRoom } from "../controllers/roomControllers.js";
 import { authAdmin } from "../middleware/userAuthentication.js";
 import { deletePhotofunction } from "../middleware/room_photo_uploads.js";
-import { searching } from "../controllers/experiment.js";
+import { testing } from "../controllers/experiment.js";
 const router = express.Router();
 router.route("/admin-register").post(createAdmin);
 router.route("/admin-login").post(loginAdmin);
@@ -14,5 +14,5 @@ router.route("/delete-photo").delete(authAdmin, deletePhotofunction);
 router.route("/update-room/:id").put(authAdmin, updateRoom);
 router.route("/update-photo/:id").post(authAdmin, updatePhoto);
 router.route("/delete-room").delete(authAdmin, deleteRoom);
-router.route("/searching").post(searching);
+router.route("/testing").post(testing);
 export default router;

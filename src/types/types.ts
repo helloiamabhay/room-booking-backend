@@ -41,7 +41,8 @@ export interface createAdminDataType {
 
 export interface createRoomTypes {
     price: number;
-    address: string;
+    locality: string;
+    district: string;
     latitude: number;
     longitude: number;
     rating: number;
