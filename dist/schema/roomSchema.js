@@ -4,7 +4,8 @@ export async function roomSchema() {
         ROOM_ID VARCHAR(200) PRIMARY KEY NOT NULL UNIQUE,
         ADMIN_REF_ID VARCHAR(200) NOT NULL,
         PRICE INT NOT NULL,
-        ADDRESS VARCHAR(255) NOT NULL,
+        LOCALITY VARCHAR(40) NOT NULL,
+        DISTRICT VARCHAR(25) NOT NULL,
         LATITUDE DECIMAL(10, 8) DEFAULT NULL,
         LONGITUDE DECIMAL(11, 8) DEFAULT NULL,
         RATING FLOAT DEFAULT 0,
@@ -27,7 +28,7 @@ export async function roomSchema() {
         PHOTO_URL_ID VARCHAR(200) NOT NULL UNIQUE,
         CREATEDAT DATETIME DEFAULT NOW(),
         FOREIGN KEY (ADMIN_REF_ID) REFERENCES ADMINS(ADMIN_ID) ON DELETE CASCADE,
-        INDEX idx_address_price_room_status (ADDRESS, PRICE, ROOM_STATUS)
+        INDEX idx_address_price_room_status (PRICE,LOCALITY,DISTRICT,ROOM_STATUS)
         )`;
     const connection = await db.getConnection();
     try {

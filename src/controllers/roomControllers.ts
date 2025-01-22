@@ -22,42 +22,43 @@ export const roomController = tryCatchFunction(async (req: Request<{}, {}, creat
 
         const admin_ref_id = getAdminId(req, res, next)
 
-        const { price, address, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body
+        const { price, address, latitude, longitude, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body
 
-        let latitude: number;
-        let longitude: number;
-        let address1: string;
+
+
+        let address0;
         try {
-            navigator.geolocation.getCurrentPosition(async (position) => {
-                latitude = position.coords.latitude;
-                longitude = position.coords.longitude;
+            // i have to take cordinates from frontend and fetch address
+
+            if (latitude && longitude) {
                 const geocoder = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
-                console.log(geocoder);
-
                 const response = await fetch(geocoder);
-                const data = response.json();
-                console.log(data);
+                const data = await response.json();
+                address0 = data.display_name;
+            } else {
+                address0 = address;
+            }
 
-            })
         } catch (error) {
+            console.log("address not fetched by real location");
 
         }
 
-        if (!price || !address || !room_status || !bed || !bed_sit || !toilet || !bathroom || !fan || !kitchen || !table_chair || !almira || !water_supply || !water_drink || !parking_space || !wifi || !ellectricity_bill || !rules) return next(new ErrorHandler("please enter all fields", 400));
 
-        const values = [room_id, admin_ref_id, price, address, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id]
+
+        if (!price || address0 === undefined || !room_status || !bed || !bed_sit || !toilet || !bathroom || !fan || !kitchen || !table_chair || !almira || !water_supply || !water_drink || !parking_space || !wifi || !ellectricity_bill || !rules) return next(new ErrorHandler("please enter all fields", 400));
+
+        const values = [room_id, admin_ref_id, price, address0, latitude, longitude, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id]
 
         try {
             const connection = await db.getConnection();
             try {
-                const query = `INSERT INTO ROOMS(ROOM_ID,ADMIN_REF_ID,PRICE,ROOM_STATUS,BED,BED_SIT,TOILET,BATHROOM,FAN,KITCHEN,TABLE_CHAIR,ALMIRA,WATER_SUPPLY,WATER_DRINK,PARKING_SPACE,WIFI,ELLECTRICITY_BILL,RULES,PHOTO_URL_ID) VALUES 
-    (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+                const query = `INSERT INTO ROOMS(ROOM_ID,ADMIN_REF_ID,PRICE,ADDRESS,LATITUDE,LONGITUDE,ROOM_STATUS,BED,BED_SIT,TOILET,BATHROOM,FAN,KITCHEN,TABLE_CHAIR,ALMIRA,WATER_SUPPLY,WATER_DRINK,PARKING_SPACE,WIFI,ELLECTRICITY_BILL,RULES,PHOTO_URL_ID) VALUES 
+    (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 
 
                 connection.query(query, values)
                 connection.release()
-
-
             } catch (error) {
                 connection.release()
                 return next(new ErrorHandler("Room not created Try again", 404))
