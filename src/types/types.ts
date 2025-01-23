@@ -62,3 +62,9 @@ export interface createRoomTypes {
     ellectricity_bill: string;
     rules: string;
 }
+
+export interface searchingRoomsTypes {
+    price: string;
+    locality: string;
+    district: string;
+}
