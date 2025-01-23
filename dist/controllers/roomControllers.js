@@ -185,7 +185,7 @@ export const searchingRooms = tryCatchFunction(async (req, res, next) => {
     let latitude;
     let longitude;
     if (latitude && longitude) {
-        const query = `SELECT *,(6371 * ACOS(COS(RADIANS(?)) * COS(RADIANS(latitude)) * COS(RADIANS(longitude) - RADIANS(?))+ SIN(RADIANS(?)) * SIN(RADIANS(latitude)) )) AS distance FROM ROOMS WHERE PRICE < ? AND LOCALITY = ? OR DISTRICT = ? AND ROOM_STATUS = "false" ORDER BY distance ;`;
+        const query = `SELECT *,(6371 * ACOS(COS(RADIANS(?)) * COS(RADIANS(latitude)) * COS(RADIANS(longitude) - RADIANS(?))+ SIN(RADIANS(?)) * SIN(RADIANS(latitude)) )) AS distance FROM ROOMS WHERE PRICE < ? AND (LOCALITY = ? OR DISTRICT = ?) AND ROOM_STATUS = "false" ORDER BY distance ;`;
         const connection = await db.getConnection();
         try {
             const value = [latitude, longitude, latitude, price, locality, district];
@@ -205,7 +205,7 @@ export const searchingRooms = tryCatchFunction(async (req, res, next) => {
     else {
         const connection = await db.getConnection();
         try {
-            const query = `SELECT * FROM ROOMS WHERE PRICE < ? AND LOCALITY = ? OR DISTRICT = ? AND ROOM_STATUS = "false";`;
+            const query = `SELECT * FROM ROOMS WHERE PRICE < ? AND (LOCALITY = ? OR DISTRICT = ?) AND ROOM_STATUS = "false";`;
             const value = [price, locality, district];
             const [rooms] = await connection.query(query, value);
             connection.release();

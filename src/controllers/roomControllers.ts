@@ -231,7 +231,7 @@ export const searchingRooms = tryCatchFunction(async (req: Request<{}, {}, searc
     let latitude;
     let longitude;
     if (latitude && longitude) {
-        const query = `SELECT *,(6371 * ACOS(COS(RADIANS(?)) * COS(RADIANS(latitude)) * COS(RADIANS(longitude) - RADIANS(?))+ SIN(RADIANS(?)) * SIN(RADIANS(latitude)) )) AS distance FROM ROOMS WHERE PRICE < ? AND LOCALITY = ? OR DISTRICT = ? AND ROOM_STATUS = "false" ORDER BY distance ;`
+        const query = `SELECT *,(6371 * ACOS(COS(RADIANS(?)) * COS(RADIANS(latitude)) * COS(RADIANS(longitude) - RADIANS(?))+ SIN(RADIANS(?)) * SIN(RADIANS(latitude)) )) AS distance FROM ROOMS WHERE PRICE < ? AND (LOCALITY = ? OR DISTRICT = ?) AND ROOM_STATUS = "false" ORDER BY distance ;`
 
         const connection = await db.getConnection();
         try {
@@ -250,7 +250,7 @@ export const searchingRooms = tryCatchFunction(async (req: Request<{}, {}, searc
     } else {
         const connection = await db.getConnection()
         try {
-            const query = `SELECT * FROM ROOMS WHERE PRICE < ? AND LOCALITY = ? OR DISTRICT = ? AND ROOM_STATUS = "false";`
+            const query = `SELECT * FROM ROOMS WHERE PRICE < ? AND (LOCALITY = ? OR DISTRICT = ?) AND ROOM_STATUS = "false";`
             const value = [price, locality, district]
 
             const [rooms] = await connection.query(query, value);
