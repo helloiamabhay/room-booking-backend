@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import { superErrorHandeler } from "./middleware/errorHandler.js";
 import users from "./routes/usersRoutes.js";
 import roomAdmins from "./routes/adminRoutes.js";
+import payment from "./routes/paymentRoutes.js";
 import { S3Client } from "@aws-sdk/client-s3";
 import NodeCache from "node-cache";
 const app = express();
@@ -50,6 +51,7 @@ db.getConnection()
 // import roomAdmins from "./routes/adminRoutes.js";
 app.use("/api/v1/users", users);
 app.use("/api/v1/admins", roomAdmins);
+app.use("/api/v1/transaction", payment);
 app.use(superErrorHandeler);
 app.listen(process.env.PORT, () => {
     console.log(`server is working on port ${process.env.PORT} `);
