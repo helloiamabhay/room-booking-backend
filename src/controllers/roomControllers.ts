@@ -246,8 +246,6 @@ export const searchingRooms = tryCatchFunction(async (req: Request<{}, {}, searc
     if (!price) return next(new ErrorHandler("Please Enter Price", 404));
     if (!locality && !district) return next(new ErrorHandler("Please Enter Lcality or Aria Name or District", 404));
 
-
-
     let latitude;
     let longitude;
     // if cordinates then execute this code ==========================================================================
@@ -282,7 +280,7 @@ export const searchingRooms = tryCatchFunction(async (req: Request<{}, {}, searc
                 dataCache.set("search-rooms", JSON.stringify(allRooms), 60)
                 res.status(200).json({
                     success: true,
-                    room: allRooms
+                    rooms: allRooms
                 })
 
             } catch (error) {
@@ -305,6 +303,8 @@ export const searchingRooms = tryCatchFunction(async (req: Request<{}, {}, searc
                 const query = `SELECT ROOMS.*, ADMINS.PHONE, ADMINS.HOSTEL_NAME FROM ROOMS JOIN 
     ADMINS ON ROOMS.ADMIN_REF_ID = ADMINS.ADMIN_ID WHERE  PRICE <= ? AND (LOCALITY = ? OR ROOMS.DISTRICT = ?) AND ROOM_STATUS = 'false';`
                 const value = [price, locality, district]
+
+                console.log("working searching");
 
                 const [rows] = await connection.query<RowDataPacket[]>(query, value);
                 connection.release()

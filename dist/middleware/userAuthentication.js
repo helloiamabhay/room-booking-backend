@@ -31,3 +31,16 @@ export const authAdmin = (req, res, next) => {
     }
     next();
 };
+export const authUser = (req, res, next) => {
+    const token = req.cookies['userAuthToken'];
+    if (!token)
+        return next(new ErrorHandler("Please SignUp Or Login! ", 401));
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        decoded.userId;
+    }
+    catch {
+        return next(new ErrorHandler("Invalid token. Please login !", 401));
+    }
+    next();
+};

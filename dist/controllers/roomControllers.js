@@ -239,7 +239,7 @@ export const searchingRooms = tryCatchFunction(async (req, res, next) => {
                 dataCache.set("search-rooms", JSON.stringify(allRooms), 60);
                 res.status(200).json({
                     success: true,
-                    room: allRooms
+                    rooms: allRooms
                 });
             }
             catch (error) {
@@ -264,6 +264,7 @@ export const searchingRooms = tryCatchFunction(async (req, res, next) => {
                 const query = `SELECT ROOMS.*, ADMINS.PHONE, ADMINS.HOSTEL_NAME FROM ROOMS JOIN 
     ADMINS ON ROOMS.ADMIN_REF_ID = ADMINS.ADMIN_ID WHERE  PRICE <= ? AND (LOCALITY = ? OR ROOMS.DISTRICT = ?) AND ROOM_STATUS = 'false';`;
                 const value = [price, locality, district];
+                console.log("working searching");
                 const [rows] = await connection.query(query, value);
                 connection.release();
                 const allRooms = await Promise.all(rows.map(async (room) => {

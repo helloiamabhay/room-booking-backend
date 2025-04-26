@@ -103,3 +103,25 @@ export const logoutUser = tryCatchFunction(async (req, res, next) => {
         message: "Logged Out Seccessfully!"
     });
 });
+// // user data
+// export const getUserData = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
+//     const userId = req.cookies.userAuthToken ? jwt.verify(req.cookies.userAuthToken, process.env.JWT_SECRET as string)?.userId : null;
+//     if (!userId) return next(new ErrorHandler("Unauthorized access", 401));
+//     try {
+//         const connection = await db.getConnection();
+//         try {
+//             const [rows] = await connection.query<RowDataPacket[]>(`SELECT * FROM USERS WHERE userId=?`, [userId]);
+//             connection.release();
+//             if (rows.length === 0) return next(new ErrorHandler("User does not exists", 404));
+//             res.status(200).json({
+//                 success: true,
+//                 data: rows[0]
+//             })
+//         } catch (error) {
+//             connection.release();
+//             return next(new ErrorHandler("DB request failed Try again: ", 500))
+//         }
+//     } catch (error) {
+//         return next(new ErrorHandler("Failed to get database connection.", 500));
+//     }
+// })

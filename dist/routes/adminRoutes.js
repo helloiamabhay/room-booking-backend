@@ -13,5 +13,5 @@ router.route("/delete-photo").delete(authAdmin, deletePhotofunction);
 router.route("/update-room/:id").put(authAdmin, updateRoom);
 router.route("/update-photo/:id").post(authAdmin, updatePhoto);
 router.route("/delete-room").delete(authAdmin, deleteRoom);
-router.route("/room-searching").get(searchingRooms);
+router.route("/room-searching").post(searchingRooms);
 export default router;

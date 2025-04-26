@@ -1,6 +1,7 @@
 import express from "express";
 import sql from "mysql2/promise";
 import { config } from "dotenv";
+import cors from "cors";
 import cookieParser from "cookie-parser";
 import { superErrorHandeler } from "./middleware/errorHandler.js";
 import users from "./routes/usersRoutes.js";
@@ -13,6 +14,11 @@ config({ path: "./.env" });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"]
+}));
 export const dataCache = new NodeCache();
 export const userS3 = new S3Client({
     region: process.env.AWS_REGION,
@@ -32,11 +38,6 @@ export const db = sql.createPool({
 });
 db.getConnection()
     .then((connection) => {
-    // let latitude1 = 26.753983
-    // let latitude2 = 26.765785
-    // let longitude1 = 82.141244
-    // let longitude2 = 82.142274
-    // const distance = getDistance({ latitude: latitude1, longitude: longitude1 }, { latitude: latitude2, longitude: longitude2 })
     console.log('Database connected successfully');
     // console.log(distance);
     connection.release();

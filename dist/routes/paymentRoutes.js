@@ -1,5 +1,5 @@
 import express from "express";
-import { payment } from "../controllers/experiment.js";
+import { PhonepeGateway } from "../controllers/paymentController.js";
 const router = express.Router();
-router.route("/payment").post(payment);
+router.route("/payment").get(PhonepeGateway);
 export default router;

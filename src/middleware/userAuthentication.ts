@@ -38,3 +38,17 @@ export const authAdmin = (req: Request, res: Response, next: NextFunction): stri
     }
     next()
 }
+
+export const authUser = (req: Request, res: Response, next: NextFunction): string | void => {
+
+    const token = req.cookies['userAuthToken'];
+
+    if (!token) return next(new ErrorHandler("Please SignUp Or Login! ", 401))
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+        (decoded as JwtPayload).userId as string;
+    } catch {
+        return next(new ErrorHandler("Invalid token. Please login !", 401));
+    }
+    next()
+}
