@@ -212,76 +212,74 @@ export const searchingRooms = tryCatchFunction(async (req, res, next) => {
     // if cordinates then execute this code ==========================================================================
     if (latitude && longitude) {
         // check data is cached or not--------------
-        if (dataCache.has("search-rooms")) {
-            const rooms = JSON.parse(dataCache.get("search-rooms"));
+        // if (dataCache.has("search-rooms")) {
+        //     const rooms = JSON.parse(dataCache.get("search-rooms") as string);
+        //     res.status(200).json({
+        //         success: true,
+        //         rooms: rooms
+        //     })
+        // } else {
+        const query = `SELECT ROOMS.*, ADMINS.PHONE, ADMINS.HOSTEL_NAME FROM ROOMS JOIN 
+    ADMINS ON ROOMS.ADMIN_REF_ID = ADMINS.ADMIN_ID WHERE  PRICE <= ? AND (LOCALITY = ? OR ROOMS.DISTRICT = ?) AND ROOM_STATUS = 'false';`;
+        const connection = await db.getConnection();
+        try {
+            const value = [price, locality, district];
+            const [rows] = await connection.query(query, value);
+            connection.release();
+            const allRooms = await Promise.all(rows.map(async (room) => {
+                let distance;
+                if (room.LATITUDE && room.LONGITUDE) {
+                    distance = getDistance({ latitude: latitude, longitude: longitude }, { latitude: room.LATITUDE, longitude: room.LONGITUDE });
+                }
+                const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
+                return { room, photos, distance };
+            }));
+            // set data in cache for 60 sec ========================
+            dataCache.set("search-rooms", JSON.stringify(allRooms), 60);
             res.status(200).json({
                 success: true,
-                rooms: rooms
+                rooms: allRooms
             });
         }
-        else {
-            const query = `SELECT ROOMS.*, ADMINS.PHONE, ADMINS.HOSTEL_NAME FROM ROOMS JOIN 
-    ADMINS ON ROOMS.ADMIN_REF_ID = ADMINS.ADMIN_ID WHERE  PRICE <= ? AND (LOCALITY = ? OR ROOMS.DISTRICT = ?) AND ROOM_STATUS = 'false';`;
-            const connection = await db.getConnection();
-            try {
-                const value = [price, locality, district];
-                const [rows] = await connection.query(query, value);
-                connection.release();
-                const allRooms = await Promise.all(rows.map(async (room) => {
-                    let distance;
-                    if (room.LATITUDE && room.LONGITUDE) {
-                        distance = getDistance({ latitude: latitude, longitude: longitude }, { latitude: room.LATITUDE, longitude: room.LONGITUDE });
-                    }
-                    const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
-                    return { room, photos, distance };
-                }));
-                // set data in cache for 60 sec ========================
-                dataCache.set("search-rooms", JSON.stringify(allRooms), 60);
-                res.status(200).json({
-                    success: true,
-                    rooms: allRooms
-                });
-            }
-            catch (error) {
-                connection.release();
-                return next(new ErrorHandler("Failed to fetch Rooms", 400));
-            }
+        catch (error) {
+            connection.release();
+            return next(new ErrorHandler("Failed to fetch Rooms", 400));
         }
+        // }
         // if not cordinates then execute this code ==========================================================================
     }
     else {
         // chech data cache-----------
-        if (dataCache.has("search-rooms")) {
-            const rooms = JSON.parse(dataCache.get("search-rooms"));
+        // if (dataCache.has("search-rooms")) {
+        //     const rooms = JSON.parse(dataCache.get("search-rooms") as string);
+        //     res.status(200).json({
+        //         success: true,
+        //         rooms: rooms
+        //     })
+        // } else {
+        const connection = await db.getConnection();
+        try {
+            const query = `SELECT ROOMS.*, ADMINS.PHONE, ADMINS.HOSTEL_NAME FROM ROOMS JOIN 
+    ADMINS ON ROOMS.ADMIN_REF_ID = ADMINS.ADMIN_ID WHERE  PRICE <= ? AND (LOCALITY = ? OR ROOMS.DISTRICT = ?) AND ROOM_STATUS = 'false';`;
+            const value = [price, locality, district];
+            console.log("working searching");
+            const [rows] = await connection.query(query, value);
+            connection.release();
+            const allRooms = await Promise.all(rows.map(async (room) => {
+                const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
+                return [room, photos];
+            }));
+            // set data in cache for 60 sec ========================
+            dataCache.set("search-rooms", JSON.stringify(allRooms), 60);
             res.status(200).json({
                 success: true,
-                rooms: rooms
+                rooms: allRooms
             });
         }
-        else {
-            const connection = await db.getConnection();
-            try {
-                const query = `SELECT ROOMS.*, ADMINS.PHONE, ADMINS.HOSTEL_NAME FROM ROOMS JOIN 
-    ADMINS ON ROOMS.ADMIN_REF_ID = ADMINS.ADMIN_ID WHERE  PRICE <= ? AND (LOCALITY = ? OR ROOMS.DISTRICT = ?) AND ROOM_STATUS = 'false';`;
-                const value = [price, locality, district];
-                console.log("working searching");
-                const [rows] = await connection.query(query, value);
-                connection.release();
-                const allRooms = await Promise.all(rows.map(async (room) => {
-                    const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
-                    return [room, photos];
-                }));
-                // set data in cache for 60 sec ========================
-                dataCache.set("search-rooms", JSON.stringify(allRooms), 60);
-                res.status(200).json({
-                    success: true,
-                    rooms: allRooms
-                });
-            }
-            catch (error) {
-                connection.release();
-                return next(new ErrorHandler("Failed to fetch Rooms", 400));
-            }
+        catch (error) {
+            connection.release();
+            return next(new ErrorHandler("Failed to fetch Rooms", 400));
         }
+        // }
     }
 });
