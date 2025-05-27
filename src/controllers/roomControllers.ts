@@ -317,7 +317,7 @@ export const searchingRooms = tryCatchFunction(async (req: Request<{}, {}, searc
             // set data in cache for 60 sec ========================
             dataCache.set("search-rooms", JSON.stringify(allRooms), 60)
 
-            if (allRooms.length === 0) return next(new ErrorHandler("No Room Found!", 404));
+            // if (allRooms.length === 0) return next(new ErrorHandler("No Room Found!", 404));
             res.status(200).json({
                 success: true,
                 rooms: allRooms
