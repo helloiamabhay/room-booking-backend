@@ -47,6 +47,11 @@ export const authUser = (req: Request, res: Response, next: NextFunction): strin
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
         (decoded as JwtPayload).userId as string;
+
+        res.status(200).json({
+            success: true,
+            message: "User logged in"
+        })
     } catch {
         return next(new ErrorHandler("Invalid token. Please login !", 401));
     }

@@ -1,9 +1,11 @@
 import express from "express";
 import { createUser, loginUser, logoutUser } from "../controllers/userController.js";
 import { authUser } from "../middleware/userAuthentication.js";
+import { searchingRooms } from "../controllers/roomControllers.js";
 const router = express.Router();
 router.route("/register").post(createUser);
 router.route("/login").post(loginUser);
 router.route("/logout").get(logoutUser);
 router.route("/user-auth").get(authUser);
+router.route("/room-searching").post(searchingRooms);
 export default router;

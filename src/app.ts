@@ -58,7 +58,7 @@ db.getConnection()
         console.error('Error connecting to the database:', err);
     });
 // adminSchema()
-// roomSchema()
+roomSchema()
 // deletePhotofunction()
 // import users from "./routes/usersRoutes.js";
 // import roomAdmins from "./routes/adminRoutes.js";
@@ -70,7 +70,6 @@ app.use(superErrorHandeler)
 app.listen(process.env.PORT, () => {
     console.log(`server is working on port ${process.env.PORT} `);
 })
-
 
 
 

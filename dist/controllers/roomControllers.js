@@ -11,46 +11,119 @@ import { getDistance } from "geolib";
 export const roomController = tryCatchFunction(async (req, res, next) => {
     const room_id = uuidv4();
     const photo_url_id = uuidv4();
-    // fix bug in future to dont upload photo without require info
     const upload = upload_func(String(photo_url_id));
     upload(req, res, async (err) => {
+        if (err instanceof MulterError) {
+            return next(new ErrorHandler("One time you can upload max 10 photos", 400));
+        }
+        if (err) {
+            return next(new ErrorHandler("Couldn't upload, please try again", 400));
+        }
         const admin_ref_id = getAdminId(req, res, next);
-        const { price, locality, district, latitude, longitude, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body;
-        // take cordinates from frontend
-        if (!price || !locality || !district || !room_status || !bed || !bed_sit || !toilet || !bathroom || !fan || !kitchen || !table_chair || !almira || !water_supply || !water_drink || !parking_space || !wifi || !ellectricity_bill || !rules)
-            return next(new ErrorHandler("please enter all fields", 400));
-        const values = [room_id, admin_ref_id, price, locality, district, latitude, longitude, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, photo_url_id];
+        if (!admin_ref_id) {
+            return next(new ErrorHandler("Admin not authorized", 403));
+        }
+        const { price, locality, district, latitude, longitude, availability_date, room_type, gender, bed_sit, ac, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, electricity_bill, discription, rules } = req.body;
+        if (!price || !locality || !district || !availability_date || !room_type || !gender ||
+            !bed_sit || !ac || !toilet || !bathroom || !fan || !kitchen || !table_chair ||
+            !almira || !water_supply || !water_drink || !parking_space || !wifi ||
+            !electricity_bill || !rules || !discription) {
+            return next(new ErrorHandler("Please enter all fields", 400));
+        }
+        const values = [
+            room_id,
+            admin_ref_id,
+            price,
+            locality,
+            district,
+            latitude || null,
+            longitude || null,
+            0.0,
+            0,
+            availability_date,
+            room_type,
+            gender,
+            bed_sit,
+            ac,
+            toilet,
+            bathroom,
+            fan,
+            kitchen,
+            table_chair,
+            almira,
+            water_supply,
+            water_drink,
+            parking_space,
+            wifi,
+            electricity_bill,
+            discription,
+            rules,
+            photo_url_id
+        ];
+        console.log("values length---------------", values.length);
         try {
             const connection = await db.getConnection();
             try {
-                const query = `INSERT INTO ROOMS(ROOM_ID,ADMIN_REF_ID,PRICE,LOCALITY,DISTRICT,LATITUDE,LONGITUDE,ROOM_STATUS,BED,BED_SIT,TOILET,BATHROOM,FAN,KITCHEN,TABLE_CHAIR,ALMIRA,WATER_SUPPLY,WATER_DRINK,PARKING_SPACE,WIFI,ELLECTRICITY_BILL,RULES,PHOTO_URL_ID) VALUES 
-    (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-                connection.query(query, values);
+                const query = `
+          INSERT INTO ROOMS (
+            ROOM_ID, ADMIN_REF_ID, PRICE, LOCALITY, DISTRICT, LATITUDE, LONGITUDE,
+            RATING, RATING_COUNT_USER,
+            AVAILABILITYDATE, ROOM_TYPE, GENDER,
+            BED_SIT, AC, TOILET, BATHROOM, FAN, KITCHEN, TABLE_CHAIR, ALMIRA,
+            WATER_SUPPLY, WATER_DRINK, PARKING_SPACE, WIFI, ELECTRICITY_BILL,
+            DISCRIPTION, RULES, PHOTO_URL_ID
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+                await connection.query(query, values);
                 connection.release();
-                // delete cached data-----------------------
                 dataCache.del("search-rooms");
             }
             catch (error) {
                 connection.release();
-                return next(new ErrorHandler("Room not created Try again", 404));
+                return next(new ErrorHandler("Room not created, try again", 500));
             }
         }
         catch (error) {
-            return next(new ErrorHandler("DB connection failed try again ", 404));
+            console.error("DB connection error:", error);
+            return next(new ErrorHandler("Database connection failed, try again", 500));
         }
         const files = req.files;
-        if (err == 'MulterError: Unexpected field' || err == MulterError)
-            return next(new ErrorHandler("One time you can uploads 10 photos", 404));
-        if (err)
-            return next(new ErrorHandler(`Could't upload, Please Try again`, 400));
-        if (!files || files.length === 0)
-            return next(new ErrorHandler("Please select at-least one photo", 404));
+        if (!files || files.length === 0) {
+            return next(new ErrorHandler("Please select at least one photo", 400));
+        }
         const imgs = files.map(file => `https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${photo_url_id}/${encodeURIComponent(file.originalname)}`);
-        // delete cached data-----------------------
         dataCache.del("search-rooms");
         res.status(201).json({
-            room: values,
-            imgs: imgs
+            room: {
+                room_id,
+                admin_ref_id,
+                price,
+                locality,
+                district,
+                latitude,
+                longitude,
+                availability_date,
+                room_type,
+                bed_sit,
+                ac,
+                toilet,
+                bathroom,
+                fan,
+                kitchen,
+                table_chair,
+                almira,
+                water_supply,
+                water_drink,
+                parking_space,
+                wifi,
+                electricity_bill,
+                rules,
+                discription,
+                photo_url_id,
+                rating: 0.0,
+                rating_count_user: 0
+            },
+            imgs
         });
     });
 });
@@ -202,85 +275,52 @@ export const deleteRoom = tryCatchFunction(async (req, res, next) => {
     }
 });
 export const searchingRooms = tryCatchFunction(async (req, res, next) => {
-    const { locality, district, price } = req.body;
-    if (!price)
-        return next(new ErrorHandler("Please Enter Price", 404));
-    if (!locality && !district)
-        return next(new ErrorHandler("Please Enter Lcality or Aria Name or District", 404));
-    let latitude;
-    let longitude;
-    // if cordinates then execute this code ==========================================================================
-    if (latitude && longitude) {
-        // check data is cached or not--------------
-        // if (dataCache.has("search-rooms")) {
-        //     const rooms = JSON.parse(dataCache.get("search-rooms") as string);
-        //     res.status(200).json({
-        //         success: true,
-        //         rooms: rooms
-        //     })
-        // } else {
-        const query = `SELECT ROOMS.*, ADMINS.PHONE, ADMINS.HOSTEL_NAME FROM ROOMS JOIN 
-    ADMINS ON ROOMS.ADMIN_REF_ID = ADMINS.ADMIN_ID WHERE  PRICE <= ? AND (LOCALITY = ? OR ROOMS.DISTRICT = ?) AND ROOM_STATUS = 'false';`;
-        const connection = await db.getConnection();
-        try {
-            const value = [price, locality, district];
-            const [rows] = await connection.query(query, value);
-            connection.release();
-            const allRooms = await Promise.all(rows.map(async (room) => {
-                let distance;
-                if (room.LATITUDE && room.LONGITUDE) {
-                    distance = getDistance({ latitude: latitude, longitude: longitude }, { latitude: room.LATITUDE, longitude: room.LONGITUDE });
-                }
-                const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
-                return { room, photos, distance };
-            }));
-            // set data in cache for 60 sec ========================
-            dataCache.set("search-rooms", JSON.stringify(allRooms), 60);
-            res.status(200).json({
-                success: true,
-                rooms: allRooms
-            });
-        }
-        catch (error) {
-            connection.release();
-            return next(new ErrorHandler("Failed to fetch Rooms", 400));
-        }
-        // }
-        // if not cordinates then execute this code ==========================================================================
+    const { location, price, room_type, gender, availability_date, latitude, longitude } = req.body;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+    if (!price || !location || !room_type || !gender || !availability_date) {
+        return next(new ErrorHandler("Please Enter All Fields.", 400));
     }
-    else {
-        // chech data cache-----------
-        // if (dataCache.has("search-rooms")) {
-        //     const rooms = JSON.parse(dataCache.get("search-rooms") as string);
-        //     res.status(200).json({
-        //         success: true,
-        //         rooms: rooms
-        //     })
-        // } else {
-        const connection = await db.getConnection();
-        try {
-            const query = `SELECT ROOMS.*, ADMINS.PHONE, ADMINS.HOSTEL_NAME FROM ROOMS JOIN 
-    ADMINS ON ROOMS.ADMIN_REF_ID = ADMINS.ADMIN_ID WHERE  PRICE <= ? AND (LOCALITY = ? OR ROOMS.DISTRICT = ?) AND ROOM_STATUS = 'false';`;
-            const value = [price, locality, district];
-            console.log("working searching");
-            const [rows] = await connection.query(query, value);
-            connection.release();
-            const allRooms = await Promise.all(rows.map(async (room) => {
-                const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
-                return [room, photos];
-            }));
-            // set data in cache for 60 sec ========================
-            dataCache.set("search-rooms", JSON.stringify(allRooms), 60);
-            // if (allRooms.length === 0) return next(new ErrorHandler("No Room Found!", 404));
-            res.status(200).json({
-                success: true,
-                rooms: allRooms
-            });
-        }
-        catch (error) {
-            connection.release();
-            return next(new ErrorHandler("Failed to fetch Rooms", 400));
-        }
-        // }
+    const connection = await db.getConnection();
+    try {
+        const cacheKey = `search-rooms-${location}-${price}-${room_type}-${gender}-${availability_date}-${page}-${limit}`;
+        const query = `
+        SELECT ROOMS.*, ADMINS.PHONE, ADMINS.HOSTEL_NAME 
+        FROM ROOMS 
+        JOIN ADMINS ON ROOMS.ADMIN_REF_ID = ADMINS.ADMIN_ID 
+        WHERE ROOMS.PRICE <= ? 
+          AND MATCH(ROOMS.LOCALITY, ROOMS.DISTRICT) AGAINST (? IN NATURAL LANGUAGE MODE)
+          AND ROOMS.ROOM_TYPE = ? 
+          AND ROOMS.GENDER = ? 
+          AND ROOMS.AVAILABILITYDATE = ?
+        LIMIT ? OFFSET ?;
+      `;
+        const values = [price, location, room_type, gender, availability_date, limit, offset];
+        const [rows] = await connection.query(query, values);
+        connection.release();
+        const allRooms = await Promise.all(rows.map(async (room) => {
+            const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
+            let distance = undefined;
+            if (latitude && longitude && room.LATITUDE && room.LONGITUDE) {
+                distance = getDistance({ latitude, longitude }, { latitude: room.LATITUDE, longitude: room.LONGITUDE });
+            }
+            distance = distance ? (distance / 1000).toFixed(2) : "0.00";
+            if (distance === "0.00") {
+                distance = undefined;
+            }
+            return { room, photos, "distance": distance };
+        }));
+        dataCache.set(cacheKey, JSON.stringify(allRooms), 60);
+        res.status(200).json({
+            success: true,
+            rooms: allRooms,
+            page,
+            limit,
+        });
+    }
+    catch (error) {
+        connection.release();
+        return next(new ErrorHandler("Failed to fetch Rooms", 400));
     }
 });

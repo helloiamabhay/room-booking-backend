@@ -8,7 +8,7 @@ import ErrorHandler from "../middleware/customError.js";
 export const createUser = tryCatchFunction(async (req, res, next) => {
     // take data from user
     const { first_name, last_name, email, password, phone, altPhone, state, district, town, pinCode, gender } = req.body;
-    if (!first_name || !email || !password)
+    if (!first_name || !email || !password || !gender || !phone)
         return next(new ErrorHandler("Please enter all fields!", 400));
     if (phone) {
         if (!validator.isMobilePhone(String(phone), 'en-IN')) {

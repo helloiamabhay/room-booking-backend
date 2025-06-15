@@ -8,6 +8,7 @@ import users from "./routes/usersRoutes.js";
 import roomAdmins from "./routes/adminRoutes.js";
 import payment from "./routes/paymentRoutes.js";
 import { S3Client } from "@aws-sdk/client-s3";
+import { roomSchema } from "./schema/roomSchema.js";
 import NodeCache from "node-cache";
 const app = express();
 config({ path: "./.env" });
@@ -46,7 +47,7 @@ db.getConnection()
     console.error('Error connecting to the database:', err);
 });
 // adminSchema()
-// roomSchema()
+roomSchema();
 // deletePhotofunction()
 // import users from "./routes/usersRoutes.js";
 // import roomAdmins from "./routes/adminRoutes.js";

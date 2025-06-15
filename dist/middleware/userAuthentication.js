@@ -38,6 +38,10 @@ export const authUser = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         decoded.userId;
+        res.status(200).json({
+            success: true,
+            message: "User logged in"
+        });
     }
     catch {
         return next(new ErrorHandler("Invalid token. Please login !", 401));

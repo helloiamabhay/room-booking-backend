@@ -43,28 +43,37 @@ export interface createRoomTypes {
     price: number;
     locality: string;
     district: string;
-    latitude: number;
-    longitude: number;
+    latitude: number | null;
+    longitude: number | null;
     rating: number;
-    room_status: string;
-    bed: string;
-    bed_sit: string;
-    toilet: string;
-    bathroom: string;
-    fan: string;
-    kitchen: string;
-    table_chair: string;
-    almira: string;
-    water_supply: number
-    water_drink: string;
-    parking_space: string;
-    wifi: string;
-    ellectricity_bill: string;
+    availability_date: string;
+    room_type: 'PRIVATE' | 'SHARED' | 'FAMILY';
+    gender: 'MALE' | 'FEMALE' | 'UNISEX'
+    bed_sit: 'YES' | 'NO';
+    ac: 'YES' | 'NO';
+    toilet: 'YES' | 'NO';
+    bathroom: 'YES' | 'NO';
+    fan: 'YES' | 'NO';
+    kitchen: 'YES' | 'NO';
+    table_chair: 'YES' | 'NO';
+    almira: 'YES' | 'NO';
+    water_supply: number;
+    water_drink: 'NAL' | 'FILTERED';
+    parking_space: 'NO' | 'TWO_WHEELER';
+    wifi: 'YES' | 'NO';
+    electricity_bill: 'YES' | 'NO';
+    discription: string;
     rules: string;
 }
 
+
 export interface searchingRoomsTypes {
-    price: string;
-    locality: string;
-    district: string;
+    location: string;
+    price: number;
+    room_type: string;
+    gender: string;
+    availability_date: string;
+    latitude?: number;
+    longitude?: number;
+
 }

@@ -33,7 +33,8 @@ export const allPhotoByAdminId = async (photoId) => {
             return [];
         }
         const photoUrls = data.Contents.map((item) => {
-            const urls = `https://${input.Bucket}.s3.ap-south-1.amazonaws.com/${item.Key}`;
+            const key = item.Key ?? "";
+            const urls = `https://${input.Bucket}.s3.ap-south-1.amazonaws.com/${encodeURIComponent(key)}`;
             return urls;
         });
         return photoUrls;
