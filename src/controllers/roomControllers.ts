@@ -37,14 +37,15 @@ export const roomController = tryCatchFunction(async (
         }
 
         const {
-            price, locality, district, latitude, longitude, availability_date, room_type, gender,
+            price, locality, district, latitude, longitude, room_type, gender,
             bed_sit, ac, toilet, bathroom, fan, kitchen, table_chair, almira,
             water_supply, water_drink, parking_space, wifi, electricity_bill,
             discription, rules
         } = req.body;
 
+
         if (
-            !price || !locality || !district || !availability_date || !room_type || !gender ||
+            !price || !locality || !district || !room_type || !gender ||
             !bed_sit || !ac || !toilet || !bathroom || !fan || !kitchen || !table_chair ||
             !almira || !water_supply || !water_drink || !parking_space || !wifi ||
             !electricity_bill || !rules || !discription
@@ -52,6 +53,7 @@ export const roomController = tryCatchFunction(async (
             return next(new ErrorHandler("Please enter all fields", 400));
         }
 
+        const availability_date = new Date().toISOString().split("T")[0];
         const values = [
             room_id,
             admin_ref_id,
@@ -105,7 +107,7 @@ export const roomController = tryCatchFunction(async (
             } catch (error) {
                 connection.release();
 
-                return next(new ErrorHandler("Room not created, try again", 500));
+                return next(new ErrorHandler(`Room not created, try again: ${error}`, 500));
             }
         } catch (error) {
             console.error("DB connection error:", error);
@@ -384,6 +386,8 @@ export const searchingRooms = tryCatchFunction(
                 })
             );
 
+            if (allRooms.length === 0) return next(new ErrorHandler("No Room Found", 404))
+
             dataCache.set(cacheKey, JSON.stringify(allRooms), 60);
 
             res.status(200).json({
@@ -400,3 +404,41 @@ export const searchingRooms = tryCatchFunction(
         }
     }
 );
+
+export const getRoomDetails = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
+    const roomId = req.params.id;
+    if (!roomId) return next(new ErrorHandler("Please provide Room Id", 404));
+
+    const query = `SELECT rooms.*, admins.hostel_name, admins.phone
+FROM rooms
+JOIN admins ON rooms.admin_ref_id = admins.admin_id
+WHERE rooms.room_id = ?;`
+    try {
+        const connection = await db.getConnection();
+        try {
+            const [rows] = await connection.query<RowDataPacket[]>(query, roomId);
+            connection.release();
+
+
+            if (rows.length === 0) {
+                return next(new ErrorHandler("Room not found", 404));
+            }
+
+            const room = rows[0];
+            const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
+
+            res.status(200).json({
+                success: true,
+                room,
+                photos
+            });
+        } catch (error) {
+            connection.release();
+
+
+            return next(new ErrorHandler("Failed to fetch room details", 500));
+        }
+    } catch (error) {
+        return next(new ErrorHandler("Database connection failed", 500));
+    }
+})
