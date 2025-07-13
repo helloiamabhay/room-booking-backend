@@ -8,7 +8,7 @@ router.route("/admin-register").post(createAdmin);
 router.route("/admin-login").post(loginAdmin);
 router.route("/logout").get(adminLogout);
 router.route("/create-room").post(authAdmin, roomController);
-router.route("/admin-rooms").get(getAdminRooms);
+router.route("/admin-rooms").get(authAdmin, getAdminRooms);
 router.route("/delete-photo").delete(authAdmin, deletePhotofunction);
 router.route("/update-room/:id").put(authAdmin, updateRoom);
 router.route("/update-photo/:id").post(authAdmin, updatePhoto);

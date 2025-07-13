@@ -148,7 +148,7 @@ export const getAdminRooms = tryCatchFunction(async (req, res, next) => {
                 connection.release();
                 const allRooms = await Promise.all(rows.map(async (room) => {
                     const photos = await allPhotoByAdminId(room.PHOTO_URL_ID);
-                    return [room, photos];
+                    return { room, photos };
                 }));
                 // set data in cache for 60 sec ========================
                 dataCache.set("admin-rooms", JSON.stringify(allRooms), 60);
