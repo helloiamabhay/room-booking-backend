@@ -61,7 +61,7 @@ export interface createRoomTypes {
     water_drink: 'NAL' | 'FILTERED';
     parking_space: 'NO' | 'TWO_WHEELER';
     wifi: 'YES' | 'NO';
-    electricity_bill: 'YES' | 'NO';
+    ellectricity_bill: 'YES' | 'NO';
     discription: string;
     rules: string;
 }

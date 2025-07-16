@@ -39,7 +39,7 @@ export const roomController = tryCatchFunction(async (
         const {
             price, locality, district, latitude, longitude, room_type, gender,
             bed_sit, ac, toilet, bathroom, fan, kitchen, table_chair, almira,
-            water_supply, water_drink, parking_space, wifi, electricity_bill,
+            water_supply, water_drink, parking_space, wifi, ellectricity_bill,
             discription, rules
         } = req.body;
 
@@ -48,7 +48,7 @@ export const roomController = tryCatchFunction(async (
             !price || !locality || !district || !room_type || !gender ||
             !bed_sit || !ac || !toilet || !bathroom || !fan || !kitchen || !table_chair ||
             !almira || !water_supply || !water_drink || !parking_space || !wifi ||
-            !electricity_bill || !rules || !discription
+            !ellectricity_bill || !rules || !discription
         ) {
             return next(new ErrorHandler("Please enter all fields", 400));
         }
@@ -79,7 +79,7 @@ export const roomController = tryCatchFunction(async (
             water_drink,
             parking_space,
             wifi,
-            electricity_bill,
+            ellectricity_bill,
             discription,
             rules,
             photo_url_id
@@ -148,7 +148,7 @@ export const roomController = tryCatchFunction(async (
                 water_drink,
                 parking_space,
                 wifi,
-                electricity_bill,
+                ellectricity_bill,
                 rules,
                 discription,
                 photo_url_id,

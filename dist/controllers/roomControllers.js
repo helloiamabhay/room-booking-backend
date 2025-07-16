@@ -23,11 +23,11 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
         if (!admin_ref_id) {
             return next(new ErrorHandler("Admin not authorized", 403));
         }
-        const { price, locality, district, latitude, longitude, room_type, gender, bed_sit, ac, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, electricity_bill, discription, rules } = req.body;
+        const { price, locality, district, latitude, longitude, room_type, gender, bed_sit, ac, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, discription, rules } = req.body;
         if (!price || !locality || !district || !room_type || !gender ||
             !bed_sit || !ac || !toilet || !bathroom || !fan || !kitchen || !table_chair ||
             !almira || !water_supply || !water_drink || !parking_space || !wifi ||
-            !electricity_bill || !rules || !discription) {
+            !ellectricity_bill || !rules || !discription) {
             return next(new ErrorHandler("Please enter all fields", 400));
         }
         const availability_date = new Date().toISOString().split("T")[0];
@@ -56,7 +56,7 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
             water_drink,
             parking_space,
             wifi,
-            electricity_bill,
+            ellectricity_bill,
             discription,
             rules,
             photo_url_id
@@ -116,7 +116,7 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
                 water_drink,
                 parking_space,
                 wifi,
-                electricity_bill,
+                ellectricity_bill,
                 rules,
                 discription,
                 photo_url_id,
@@ -171,9 +171,9 @@ export const updateRoom = tryCatchFunction(async (req, res, next) => {
     const roomId = req.params.id;
     if (!roomId)
         return next(new ErrorHandler("Please provide Room Id", 404));
-    const { price, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules } = req.body;
-    const query = ` UPDATE rooms SET PRICE = ?,ROOM_STATUS = ?, BED = ?, BED_SIT = ?, TOILET = ?, BATHROOM = ?, FAN = ?, KITCHEN = ?, TABLE_CHAIR = ?, ALMIRA = ?, WATER_SUPPLY = ?, WATER_DRINK = ?, PARKING_SPACE = ?, WIFI = ?, ELLECTRICITY_BILL = ?, RULES = ? WHERE ROOM_ID = ? `;
-    const value = [price, room_status, bed, bed_sit, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, rules, roomId];
+    const { price, locality, district, latitude, longitude, room_type, gender, bed_sit, ac, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, discription, rules } = req.body;
+    const query = ` UPDATE rooms SET PRICE = ?, LOCALITY= ?, DISTRICT = ?, LATITUDE = ?, LONGITUDE = ?, ROOM_TYPE = ?, GENDER = ?, BED_SIT = ?, AC = ?, TOILET = ?, BATHROOM = ?, FAN = ?, KITCHEN = ?, TABLE_CHAIR = ?, ALMIRA = ?, WATER_SUPPLY = ?, WATER_DRINK=?,PARKING_SPACE=?,WIFI=?,ELECTRICITY_BILL=?,DISCRIPTION=?,RULES=? WHERE ROOM_ID = ? `;
+    const value = [price, locality, district, latitude, longitude, room_type, gender, bed_sit, ac, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, discription, rules, roomId];
     try {
         const connection = await db.getConnection();
         try {
