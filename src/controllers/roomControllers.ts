@@ -240,7 +240,7 @@ export const updateRoom = tryCatchFunction(async (req: Request, res: Response, n
 
 export const updatePhoto = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
 
-    const photoId = req.params.id
+    const photoId = req.query.photoid as string
     if (!photoId) return next(new ErrorHandler("Please provide PhotoId", 400))
 
     const upload = upload_func(photoId)
@@ -253,7 +253,6 @@ export const updatePhoto = tryCatchFunction(async (req: Request, res: Response, 
         if (!files || files.length === 0) {
             return next(new ErrorHandler("No files uploaded", 400));
         }
-
         const img = files.map((file) => {
             return `https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${photoId}/${encodeURIComponent(file.originalname)}`
         })
@@ -264,13 +263,9 @@ export const updatePhoto = tryCatchFunction(async (req: Request, res: Response, 
             message: "Photo uploaded seccessfully",
             img: img
         })
-
     })
-
 })
-
 export const deleteRoom = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
-
     const roomId = req.query.roomId as string;
     const PhotoId = req.query.photoId as string;
 

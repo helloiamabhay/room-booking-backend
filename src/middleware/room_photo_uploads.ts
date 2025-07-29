@@ -59,7 +59,7 @@ export const deletePhotofunction = async (req: Request, res: Response, next: Nex
     // console.log("key is : " + key);
     const params = {
         Bucket: 'room-booking-app',
-        Key: `rooms/${key}`
+        Key: `${key}`
     }
 
     try {
@@ -67,7 +67,7 @@ export const deletePhotofunction = async (req: Request, res: Response, next: Nex
         // console.log("photo deleted");
         res.status(200).json({
             success: true,
-            message: `this photo deleted seccessfully : https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${key}`
+            message: `This photo has deleted seccessfully,`
         })
 
     } catch (error) {

@@ -196,7 +196,7 @@ export const updateRoom = tryCatchFunction(async (req, res, next) => {
     }
 });
 export const updatePhoto = tryCatchFunction(async (req, res, next) => {
-    const photoId = req.params.id;
+    const photoId = req.query.photoid;
     if (!photoId)
         return next(new ErrorHandler("Please provide PhotoId", 400));
     const upload = upload_func(photoId);
