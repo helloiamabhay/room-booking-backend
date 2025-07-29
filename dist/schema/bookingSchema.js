@@ -1,5 +1,4 @@
 import { db } from "../app.js";
-
 export async function bookingSchema() {
     const bookingsTable = `
     CREATE TABLE IF NOT EXISTS BOOKINGS (
@@ -18,13 +17,13 @@ export async function bookingSchema() {
       FOREIGN KEY (USER_ID) REFERENCES users(userId) ON DELETE SET NULL
     )
   `;
-
     const connection = await db.getConnection();
     try {
         await connection.query(bookingsTable);
         connection.release();
         console.log("bookings table created");
-    } catch (error) {
+    }
+    catch (error) {
         console.error("Error creating bookings table:", error);
     }
 }

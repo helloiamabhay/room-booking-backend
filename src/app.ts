@@ -13,6 +13,7 @@ import { adminSchema } from "./schema/adminSchema.js";
 import { roomSchema } from "./schema/roomSchema.js";
 import NodeCache from "node-cache";
 import { getDistance } from "geolib";
+import { bookingSchema } from "./schema/bookingSchema.js";
 
 const app = express();
 config({ path: "./.env" })
@@ -58,7 +59,8 @@ db.getConnection()
         console.error('Error connecting to the database:', err);
     });
 // adminSchema()
-roomSchema()
+// roomSchema()
+bookingSchema()
 // deletePhotofunction()
 // import users from "./routes/usersRoutes.js";
 // import roomAdmins from "./routes/adminRoutes.js";
