@@ -23,10 +23,9 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
         if (!admin_ref_id) {
             return next(new ErrorHandler("Admin not authorized", 403));
         }
-        const { price, locality, district, latitude, longitude, room_type, gender, bed_sit, ac, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, discription, rules } = req.body;
-        if (!price || !locality || !district || !room_type || !gender ||
-            !bed_sit || !ac || !toilet || !bathroom || !fan || !kitchen || !table_chair ||
-            !almira || !water_supply || !water_drink || !parking_space || !wifi ||
+        const { price, room_no, locality, district, latitude, longitude, room_type, gender, bed_sit, ac, toilet, bathroom, fan, kitchen, water_supply, water_drink, parking_space, wifi, ellectricity_bill, discription, rules } = req.body;
+        if (!price || !room_no || !locality || !district || !room_type || !gender ||
+            !bed_sit || !ac || !toilet || !bathroom || !fan || !kitchen || !water_supply || !water_drink || !parking_space || !wifi ||
             !ellectricity_bill || !rules || !discription) {
             return next(new ErrorHandler("Please enter all fields", 400));
         }
@@ -35,6 +34,7 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
             room_id,
             admin_ref_id,
             price,
+            room_no,
             locality,
             district,
             latitude || null,
@@ -50,8 +50,6 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
             bathroom,
             fan,
             kitchen,
-            table_chair,
-            almira,
             water_supply,
             water_drink,
             parking_space,
@@ -64,21 +62,34 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
         try {
             const connection = await db.getConnection();
             try {
-                const query = `
+                await connection.beginTransaction();
+                const roomInsertQuery = `
           INSERT INTO ROOMS (
-            ROOM_ID, ADMIN_REF_ID, PRICE, LOCALITY, DISTRICT, LATITUDE, LONGITUDE,
+            ROOM_ID, ADMIN_REF_ID, PRICE,ROOM_NO, LOCALITY, DISTRICT, LATITUDE, LONGITUDE,
             RATING, RATING_COUNT_USER,
             AVAILABILITYDATE, ROOM_TYPE, GENDER,
-            BED_SIT, AC, TOILET, BATHROOM, FAN, KITCHEN, TABLE_CHAIR, ALMIRA,
+            BED_SIT, AC, TOILET, BATHROOM, FAN, KITCHEN,
             WATER_SUPPLY, WATER_DRINK, PARKING_SPACE, WIFI, ELECTRICITY_BILL,
             DISCRIPTION, RULES, PHOTO_URL_ID
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
-                await connection.query(query, values);
+                await connection.query(roomInsertQuery, values);
+                const bookingInsertQuery = `INSERT INTO BOOKINGS (BOOKING_ID,ADMIN_REF_ID,ROOM_ID,ROOM_NO,PRICE,AVAILABILITY_DATE) VALUES (?,?,?,?,?,?)`;
+                const bookingValues = [
+                    uuidv4(),
+                    admin_ref_id,
+                    room_id,
+                    room_no,
+                    price,
+                    availability_date
+                ];
+                await connection.query(bookingInsertQuery, bookingValues);
+                await connection.commit();
                 connection.release();
                 dataCache.del("search-rooms");
             }
             catch (error) {
+                await connection.rollback();
                 connection.release();
                 return next(new ErrorHandler(`Room not created, try again: ${error}`, 500));
             }
@@ -98,6 +109,7 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
                 room_id,
                 admin_ref_id,
                 price,
+                room_no,
                 locality,
                 district,
                 latitude,
@@ -110,8 +122,6 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
                 bathroom,
                 fan,
                 kitchen,
-                table_chair,
-                almira,
                 water_supply,
                 water_drink,
                 parking_space,

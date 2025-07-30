@@ -41,6 +41,7 @@ export interface createAdminDataType {
 
 export interface createRoomTypes {
     price: number;
+    room_no: number;
     locality: string;
     district: string;
     latitude: number | null;
@@ -55,8 +56,6 @@ export interface createRoomTypes {
     bathroom: 'YES' | 'NO';
     fan: 'YES' | 'NO';
     kitchen: 'YES' | 'NO';
-    table_chair: 'YES' | 'NO';
-    almira: 'YES' | 'NO';
     water_supply: number;
     water_drink: 'NAL' | 'FILTERED';
     parking_space: 'NO' | 'TWO_WHEELER';

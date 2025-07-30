@@ -60,7 +60,7 @@ db.getConnection()
     });
 // adminSchema()
 // roomSchema()
-bookingSchema()
+// bookingSchema()
 // deletePhotofunction()
 // import users from "./routes/usersRoutes.js";
 // import roomAdmins from "./routes/adminRoutes.js";
