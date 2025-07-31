@@ -448,3 +448,58 @@ WHERE rooms.room_id = ?;`
         return next(new ErrorHandler("Database connection failed", 500));
     }
 })
+
+export const getHomeDashData = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
+
+    if (dataCache.has("admin-home-dash")) {
+        const cachedData = JSON.parse(dataCache.get("admin-home-dash") as string);
+        return res.status(200).json({
+            success: true,
+            data: cachedData
+        });
+    }
+
+    const adminId = getAdminId(req, res, next);
+    if (!adminId) return next(new ErrorHandler("Please Login First !", 403));
+
+    const connection = await db.getConnection();
+    try {
+
+
+        const query = `SELECT
+  COUNT(DISTINCT ROOM_NO) AS total_rooms,
+  COUNT(CASE WHEN BOOKING_STATUS = 'CONFIRMED' THEN 1 END) AS booked_rooms,
+  COUNT(CASE WHEN BOOKING_STATUS != 'CONFIRMED' THEN 1 END) AS not_booked_rooms,
+  COUNT(CASE WHEN PAYMENT_STATUS = 'PAID' THEN 1 END) AS paid_payments,
+  COUNT(CASE WHEN PAYMENT_STATUS = 'UNPAID' THEN 1 END) AS unpaid_payments
+FROM BOOKINGS
+WHERE ADMIN_REF_ID =?;`
+
+        const [adminHomeData] = await connection.query<RowDataPacket[]>(query, adminId);
+        connection.release();
+
+        if (adminHomeData.length === 0) return next(new ErrorHandler("No data found", 404));
+        const data = adminHomeData[0];
+        const responseData = {
+            total_rooms: data.total_rooms || 0,
+            booked_rooms: data.booked_rooms || 0,
+            not_booked_rooms: data.not_booked_rooms || 0,
+            paid_payments: data.paid_payments || 0,
+            unpaid_payments: data.unpaid_payments || 0
+        };
+
+        dataCache.set("admin-home-dash", JSON.stringify(responseData), 60);
+
+        res.status(200).json({
+            success: true,
+            data: responseData
+        });
+
+    } catch (error) {
+        return next(new ErrorHandler("Failed to fetch home dashboard data", 500));
+
+    }
+
+})
+
+
