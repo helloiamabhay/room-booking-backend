@@ -502,4 +502,39 @@ WHERE ADMIN_REF_ID =?;`
 
 })
 
+export const getAdminBookings = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
+    const adminId = getAdminId(req, res, next);
+    if (!adminId) return next(new ErrorHandler("Please Login First !", 403));
+    if (dataCache.has(`admin-bookings`)) {
+        const cachedBookings = JSON.parse(dataCache.get(`admin-bookings`) as string);
+        return res.status(200).json({
+            success: true,
+            bookings: cachedBookings
+        });
+    }
 
+    const query = `SELECT ROOM_NO, BOOKING_STATUS,PAYMENT_STATUS,PRICE,PAYMENT_DATE,AVAILABILITY_DATE FROM BOOKINGS WHERE ADMIN_REF_ID=?;`;
+    try {
+        const connection = await db.getConnection();
+        try {
+            const [rows] = await connection.query<RowDataPacket[]>(query, adminId);
+            connection.release();
+
+            if (rows.length === 0) {
+                return next(new ErrorHandler("No bookings found", 404));
+            }
+            dataCache.set(`admin-bookings`, JSON.stringify(rows), 60);
+
+            res.status(200).json({
+                success: true,
+                bookings: rows
+            });
+        } catch (error) {
+            connection.release();
+
+            return next(new ErrorHandler("Failed to fetch bookings", 500));
+        }
+    } catch (error) {
+        return next(new ErrorHandler("Database connection failed", 500));
+    }
+})
