@@ -1,6 +1,6 @@
 import express from "express";
 import { createUser, loginUser, logoutUser } from "../controllers/userController.js";
-import { authUser } from "../middleware/userAuthentication.js";
+import { authUser } from "../middleware/authentication.js";
 import { getRoomDetails, searchingRooms } from "../controllers/roomControllers.js";
 const router = express.Router();
 router.route("/register").post(createUser);

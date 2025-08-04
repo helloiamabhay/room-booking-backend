@@ -98,8 +98,11 @@ export const loginAdmin = tryCatchFunction(async (req: Request<{}, {}, loginData
             res.cookie('adminAuthToken', token, {
                 maxAge: 10 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
+                secure: true,
                 sameSite: "strict"
             })
+
+
 
             res.status(201).json({
                 success: true,
@@ -109,6 +112,7 @@ export const loginAdmin = tryCatchFunction(async (req: Request<{}, {}, loginData
 
         } catch (error) {
             connection.release();
+            console.error("Error during login:", error);
             return next(new ErrorHandler("DB request failed Try again", 500))
 
         }
@@ -125,7 +129,6 @@ export const adminLogout = tryCatchFunction(async (req: Request, res: Response, 
         secure: true,
         sameSite: 'strict'
     })
-
     res.status(200).json({
         success: true,
         message: "Logged Out Seccessfully!"

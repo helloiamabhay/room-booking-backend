@@ -3,7 +3,7 @@ import ErrorHandler from "../middleware/customError.js";
 import { v4 as uuidv4 } from "uuid";
 import { dataCache, db, userS3 } from "../app.js";
 import { allPhotoByAdminId, upload_func } from "../middleware/room_photo_uploads.js";
-import { getAdminId } from "../middleware/userAuthentication.js";
+import { getAdminId } from "../middleware/authentication.js";
 import { MulterError } from "multer";
 import { DeleteObjectsCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getDistance } from "geolib";
@@ -303,7 +303,7 @@ export const searchingRooms = tryCatchFunction(async (req, res, next) => {
           AND MATCH(ROOMS.LOCALITY, ROOMS.DISTRICT) AGAINST (? IN NATURAL LANGUAGE MODE)
           AND ROOMS.ROOM_TYPE = ? 
           AND ROOMS.GENDER = ? 
-          AND ROOMS.AVAILABILITYDATE = ?
+          AND ROOMS.AVAILABILITYDATE <= ?
         LIMIT ? OFFSET ?;
       `;
         const values = [price, location, room_type, gender, availability_date, limit, offset];

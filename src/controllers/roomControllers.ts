@@ -6,7 +6,7 @@ import { dataCache, db, userS3 } from "../app.js";
 import { createRoomTypes, searchingRoomsTypes } from "../types/types.js";
 import { allPhotoByAdminId, upload_func } from "../middleware/room_photo_uploads.js";
 import { RowDataPacket } from "mysql2";
-import { getAdminId } from "../middleware/userAuthentication.js";
+import { getAdminId } from "../middleware/authentication.js";
 import { MulterError } from "multer";
 import { DeleteObjectsCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getDistance } from "geolib";
@@ -363,7 +363,7 @@ export const searchingRooms = tryCatchFunction(
           AND MATCH(ROOMS.LOCALITY, ROOMS.DISTRICT) AGAINST (? IN NATURAL LANGUAGE MODE)
           AND ROOMS.ROOM_TYPE = ? 
           AND ROOMS.GENDER = ? 
-          AND ROOMS.AVAILABILITYDATE = ?
+          AND ROOMS.AVAILABILITYDATE <= ?
         LIMIT ? OFFSET ?;
       `;
 

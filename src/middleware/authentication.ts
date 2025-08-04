@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { tryCatchFunction } from "./errorHandler.js";
 import ErrorHandler from "./customError.js";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { log } from "console";
 
 
 
@@ -37,6 +38,23 @@ export const authAdmin = (req: Request, res: Response, next: NextFunction): stri
         return next(new ErrorHandler("Invalid token. Please login again!", 401));
     }
     next()
+}
+export const authAdminCheck = (req: Request, res: Response, next: NextFunction): string | void => {
+
+    const token = req.cookies['adminAuthToken'];
+
+    if (!token) return next(new ErrorHandler("Please Login before! ", 401))
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+        (decoded as JwtPayload).admin_id as string;
+        res.status(200).json({
+            success: true,
+            message: "Admin logged in"
+        });
+    } catch (error) {
+        console.error("Authentication error:", error);
+        return next(new ErrorHandler("Invalid token. Please login again!", 401));
+    }
 }
 
 export const authUser = (req: Request, res: Response, next: NextFunction): string | void => {

@@ -74,6 +74,7 @@ export const loginAdmin = tryCatchFunction(async (req, res, next) => {
             res.cookie('adminAuthToken', token, {
                 maxAge: 10 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
+                secure: true,
                 sameSite: "strict"
             });
             res.status(201).json({
@@ -83,6 +84,7 @@ export const loginAdmin = tryCatchFunction(async (req, res, next) => {
         }
         catch (error) {
             connection.release();
+            console.error("Error during login:", error);
             return next(new ErrorHandler("DB request failed Try again", 500));
         }
     }

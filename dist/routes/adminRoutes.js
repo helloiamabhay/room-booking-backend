@@ -1,12 +1,13 @@
 import express from "express";
 import { adminLogout, createAdmin, loginAdmin } from "../controllers/adminController.js";
 import { deleteRoom, getAdminBookings, getAdminRooms, getHomeDashData, roomController, updatePhoto, updateRoom } from "../controllers/roomControllers.js";
-import { authAdmin } from "../middleware/userAuthentication.js";
+import { authAdmin, authAdminCheck } from "../middleware/authentication.js";
 import { deletePhotofunction } from "../middleware/room_photo_uploads.js";
 const router = express.Router();
 router.route("/admin-register").post(createAdmin);
 router.route("/admin-login").post(loginAdmin);
 router.route("/logout").get(adminLogout);
+router.route("/admin-auth").get(authAdminCheck);
 router.route("/create-room").post(authAdmin, roomController);
 router.route("/admin-rooms").get(authAdmin, getAdminRooms);
 router.route("/admin-home-dash").get(authAdmin, getHomeDashData);
