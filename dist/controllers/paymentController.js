@@ -1,73 +1,86 @@
-// import { application, NextFunction, Request, Response } from "express";
-// import { tryCatchFunction } from "../middleware/errorHandler.js";
-// import { v4 as uuidv4 } from 'uuid';
-import { tryCatchFunction } from "../middleware/errorHandler.js";
-import { v4 as uuidv4 } from 'uuid';
-import { createHash } from 'crypto';
 import axios from 'axios';
-// dotenv.config();
-// Environment variables for sensitive data
-const MERCHANT_ID = "PGTESTPAYUAT";
-const SALT_INDEX = "1";
-const SALT_KEY = "96434309-7796-489d-8924-ab56988a6076";
-const PHONE_PE_UAT_URL = 'https://api-preprod.phonepe.com/apis/pg-sandbox';
-const PAYENDPOINT = "/pg/v1/pay";
-const USER_ID = "123abc";
-export const PhonepeGateway = tryCatchFunction(async (req, res, next) => {
-    const MERCHANT_USER_ID = uuidv4();
-    // Construct the payload
-    const payload = {
-        "merchantId": "PGTESTPAYUAT86",
-        "merchantTransactionId": "MT7850590068188104",
-        "merchantUserId": "MUID123",
-        "amount": 100,
-        "redirectUrl": "https://localhost:2000/redirect-url",
-        "redirectMode": "REDIRECT",
-        "mobileNumber": "9999999999",
-        "paymentInstrument": {
-            "type": "PAY_PAGE"
-        }
-    };
-    // Encode the payload to base64
-    const bufferObj = Buffer.from(JSON.stringify(payload), "utf8");
-    const base64EncodedString = bufferObj.toString("base64");
-    // Calculate the X-VERIFY header
-    const dataToHash = base64EncodedString + "/pg/v1/pay" + SALT_KEY;
-    const sha256Hash = createHash('sha256').update(dataToHash).digest('hex');
-    const xVerify = sha256Hash + "###" + SALT_INDEX;
-    // Set up the request options
-    // const options = {
-    //     method: 'POST',
-    //     url: `${PHONE_PE_UAT_URL}${PAYENDPOINT}`,
-    //     headers: {
-    //         "Content-Type": 'application/json',
-    //         "X-VERIFY": xVerify,
-    //         "accept": 'application/json',
-    //     },
-    //     data: {
-    //         request: base64EncodedString
-    //     },
-    // };
-    // Send the request to PhonePe API
+import { tryCatchFunction } from '../middleware/errorHandler.js';
+import ErrorHandler from '../middleware/customError.js';
+export const getAccessToken = async () => {
     try {
-        const response = await axios.post(`${PHONE_PE_UAT_URL}${PAYENDPOINT}`, { request: base64EncodedString }, {
-            headers: {
-                "Content-Type": "application/json",
-                "X-VERIFY": xVerify,
-                accept: "application/json",
-            }
+        const body = new URLSearchParams({
+            client_version: process.env.PAY_CLIENT_VERSION || "1",
+            grant_type: "client_credentials",
+            client_id: process.env.PAY_CLIENT_ID,
+            client_secret: process.env.PAY_CLIENT_SECRET,
         });
-        console.log("response->", response);
-        res.redirect(response.data.data.instrumentResponse.redirectInfo.url);
+        const response = await axios.post(`${process.env.PAY_BASE_URL}/v1/oauth/token`, body.toString(), {
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        });
+        const accessToken = response.data.access_token || null;
+        return accessToken;
+    }
+    catch (error) {
+        console.error("❌ Failed to fetch token:", error.response?.data || error.message);
+        return null;
+    }
+};
+export const initiatePayment = tryCatchFunction(async (req, res, next) => {
+    const { amount, orderId, redirectUrl } = req.body;
+    if (!amount || !orderId || !redirectUrl)
+        return next(new ErrorHandler("Missing required payment parameters", 400));
+    const token = await getAccessToken();
+    if (!token) {
+        throw new Error('Unable to get access token');
+    }
+    const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `O-Bearer ${token}`,
+    };
+    const body = {
+        amount,
+        expireAfter: 1200, // in seconds (20 min)
+        metaInfo: {
+            udf1: 'room-booking',
+            udf2: 'user-id-optional',
+        },
+        paymentFlow: {
+            type: 'PG_CHECKOUT',
+            message: 'Payment for room booking',
+            merchantUrls: {
+                redirectUrl,
+            },
+        },
+        merchantOrderId: orderId,
+    };
+    try {
+        const response = await axios.post(`${process.env.PAY_BASE_URL}/checkout/v2/pay`, body, { headers });
+        res.status(200).json({
+            data: response.data
+        });
+        return response.data;
     }
     catch (err) {
-        if (err.response && err.response.status === 429) {
-            console.log('Rate limit hit, retrying...');
-            res.status(429).send({ error: 'Rate limit hit, please try again later.' });
-        }
-        else {
-            console.error('Payment failed:', err.message);
-            res.status(500).send({ error: 'Payment failed, please try again later.' });
-        }
+        console.error('❌ Payment Error:', err);
+        throw err;
     }
 });
+// Verify Payment Status after redirect
+export const verifyPayment = async (req, res) => {
+    const { merchantOrderId } = req.params;
+    const token = await getAccessToken();
+    if (!token)
+        return res.status(500).json({ error: 'Failed to get access token' });
+    try {
+        const response = await axios.get(`${process.env.PAY_BASE_URL}/checkout/v2/status/${merchantOrderId}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        const paymentStatus = response.data.status; // e.g. 'SUCCESS', 'FAILURE'
+        if (paymentStatus === 'SUCCESS') {
+        }
+    }
+    catch (err) {
+        console.error('Verify payment error:', err.response?.data || err.message);
+        return res.status(500).json({ error: 'Failed to verify payment' });
+    }
+};

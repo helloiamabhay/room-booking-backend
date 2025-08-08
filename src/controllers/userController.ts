@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken"
 import { createUserBodyData, loginDataType } from "../types/types.js";
 import ErrorHandler from "../middleware/customError.js";
 import { RowDataPacket } from "mysql2";
+import { log } from "console";
 
 
 
@@ -45,7 +46,7 @@ export const createUser = tryCatchFunction(async (req: Request<{}, {}, createUse
             await connection.query(query, values);
             connection.release();
 
-            const token = jwt.sign({ userId }, process.env.JWT_SECRET as string, { expiresIn: '15d' });
+            const token = jwt.sign({ userId, first_name, email, phone }, process.env.JWT_SECRET as string, { expiresIn: '15d' });
 
             res.cookie('userAuthToken', token, {
                 maxAge: 15 * 24 * 60 * 60 * 1000,
@@ -82,7 +83,7 @@ export const loginUser = tryCatchFunction(async (req: Request<{}, {}, loginDataT
         const connection = await db.getConnection();
         try {
             const value = [phoneOrEmail, phoneOrEmail]
-            const [rows] = await connection.query<RowDataPacket[]>(`SELECT userId,first_name,password FROM USERS WHERE phone=? OR email=?`, value);
+            const [rows] = await connection.query<RowDataPacket[]>(`SELECT userId,first_name,email,password,phone FROM USERS WHERE phone=? OR email=?`, value);
 
             connection.release();
             if (rows.length === 0) {
@@ -94,8 +95,9 @@ export const loginUser = tryCatchFunction(async (req: Request<{}, {}, loginDataT
             if (!isPasswordValid) {
                 return next(new ErrorHandler("Incorrect Password or User!", 401));
             }
+            console.log("user: ", user);
 
-            const token = jwt.sign({ userId: user.userId }, process.env.JWT_SECRET as string, { expiresIn: '15d' });
+            const token = jwt.sign({ userId: user.userId, first_name: user.first_name, email: user.email, phone: user.phone }, process.env.JWT_SECRET as string, { expiresIn: '15d' });
 
             res.cookie('userAuthToken', token, {
                 maxAge: 15 * 24 * 60 * 60 * 1000,

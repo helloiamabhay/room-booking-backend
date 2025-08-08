@@ -32,7 +32,7 @@ export const createUser = tryCatchFunction(async (req, res, next) => {
             const values = [userId, first_name, last_name, hashedPassword, email, phone, altPhone, state, district, town, pinCode, gender];
             await connection.query(query, values);
             connection.release();
-            const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '15d' });
+            const token = jwt.sign({ userId, first_name, email, phone }, process.env.JWT_SECRET, { expiresIn: '15d' });
             res.cookie('userAuthToken', token, {
                 maxAge: 15 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
@@ -61,7 +61,7 @@ export const loginUser = tryCatchFunction(async (req, res, next) => {
         const connection = await db.getConnection();
         try {
             const value = [phoneOrEmail, phoneOrEmail];
-            const [rows] = await connection.query(`SELECT userId,first_name,password FROM USERS WHERE phone=? OR email=?`, value);
+            const [rows] = await connection.query(`SELECT userId,first_name,email,password,phone FROM USERS WHERE phone=? OR email=?`, value);
             connection.release();
             if (rows.length === 0) {
                 return next(new ErrorHandler("Incorrect Password or User!", 401));
@@ -71,7 +71,8 @@ export const loginUser = tryCatchFunction(async (req, res, next) => {
             if (!isPasswordValid) {
                 return next(new ErrorHandler("Incorrect Password or User!", 401));
             }
-            const token = jwt.sign({ userId: user.userId }, process.env.JWT_SECRET, { expiresIn: '15d' });
+            console.log("user: ", user);
+            const token = jwt.sign({ userId: user.userId, first_name: user.first_name, email: user.email, phone: user.phone }, process.env.JWT_SECRET, { expiresIn: '15d' });
             res.cookie('userAuthToken', token, {
                 maxAge: 15 * 24 * 60 * 60 * 1000,
                 httpOnly: true,

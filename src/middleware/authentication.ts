@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from "express";
+import e, { NextFunction, Request, Response } from "express";
 import { tryCatchFunction } from "./errorHandler.js";
 import ErrorHandler from "./customError.js";
 import jwt, { JwtPayload } from "jsonwebtoken";
