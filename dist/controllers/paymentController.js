@@ -23,8 +23,9 @@ export const getAccessToken = async () => {
     }
 };
 export const initiatePayment = tryCatchFunction(async (req, res, next) => {
-    const { amount, orderId, redirectUrl } = req.body;
-    if (!amount || !orderId || !redirectUrl)
+    console.log("create api called");
+    const { amount, redirectUrl } = req.body;
+    if (!amount || !redirectUrl)
         return next(new ErrorHandler("Missing required payment parameters", 400));
     const token = await getAccessToken();
     if (!token) {
@@ -45,10 +46,10 @@ export const initiatePayment = tryCatchFunction(async (req, res, next) => {
             type: 'PG_CHECKOUT',
             message: 'Payment for room booking',
             merchantUrls: {
-                redirectUrl,
+                "redirectUrl": redirectUrl,
             },
         },
-        merchantOrderId: orderId,
+        merchantOrderId: "jgffytryuftuytuyfuygyguyguyguygug",
     };
     try {
         const response = await axios.post(`${process.env.PAY_BASE_URL}/checkout/v2/pay`, body, { headers });
@@ -64,23 +65,40 @@ export const initiatePayment = tryCatchFunction(async (req, res, next) => {
 });
 // Verify Payment Status after redirect
 export const verifyPayment = async (req, res) => {
-    const { merchantOrderId } = req.params;
+    const { orderId } = req.params;
     const token = await getAccessToken();
     if (!token)
         return res.status(500).json({ error: 'Failed to get access token' });
     try {
-        const response = await axios.get(`${process.env.PAY_BASE_URL}/checkout/v2/status/${merchantOrderId}`, {
+        const response = await axios.get(`${process.env.PAY_BASE_URL}/checkout/v2/order/${orderId}/status`, {
+            headers: {
+                "Content-Type": 'application/json',
+                "Authorization": `O-Bearer ${token}`,
+            },
+        });
+        const paymentStatus = response.data.status; // e.g. 'SUCCESS', 'FAILURE'
+        return res.status(200).json({ status: paymentStatus, data: response.data });
+    }
+    catch (err) {
+        return res.status(500).json({ error: `Failed to verify payment` });
+    }
+};
+export const refundPayment = async (req, res) => {
+    const { orderId, refundAmount } = req.body;
+    const token = await getAccessToken();
+    if (!token)
+        return res.status(500).json({ error: 'Failed to get access token' });
+    try {
+        const response = await axios.post(`${process.env.PAY_BASE_URL}/checkout/v2/refund`, { orderId, refundAmount, reason: "Customer requested refund and room booking canceled" }, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
         });
-        const paymentStatus = response.data.status; // e.g. 'SUCCESS', 'FAILURE'
-        if (paymentStatus === 'SUCCESS') {
-        }
+        return res.status(200).json({ refunded: true, details: response.data });
     }
     catch (err) {
-        console.error('Verify payment error:', err.response?.data || err.message);
-        return res.status(500).json({ error: 'Failed to verify payment' });
+        console.error('Refund payment error:', err.response?.data || err.message);
+        return res.status(500).json({ error: 'Failed to refund payment' });
     }
 };
