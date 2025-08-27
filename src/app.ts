@@ -14,6 +14,7 @@ import { roomSchema } from "./schema/roomSchema.js";
 import NodeCache from "node-cache";
 import { getDistance } from "geolib";
 import { bookingSchema } from "./schema/bookingSchema.js";
+import { paymentSchema } from "./schema/paymentSchema.js";
 
 const app = express();
 config({ path: "./.env" })
@@ -62,6 +63,7 @@ db.getConnection()
 // roomSchema()
 // bookingSchema()
 // deletePhotofunction()
+paymentSchema()
 // import users from "./routes/usersRoutes.js";
 // import roomAdmins from "./routes/adminRoutes.js";
 app.use("/api/v1/users", users)
@@ -70,7 +72,7 @@ app.use("/api/v1/transaction", payment)
 app.use(superErrorHandeler)
 
 app.listen(process.env.PORT, () => {
-    console.log(`server is working on port ${process.env.PORT} `);
+    console.log(`server is working on port ${process.env.PORT}`);
 })
 
 

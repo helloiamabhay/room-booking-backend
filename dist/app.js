@@ -9,6 +9,7 @@ import roomAdmins from "./routes/adminRoutes.js";
 import payment from "./routes/paymentRoutes.js";
 import { S3Client } from "@aws-sdk/client-s3";
 import NodeCache from "node-cache";
+import { paymentSchema } from "./schema/paymentSchema.js";
 const app = express();
 config({ path: "./.env" });
 app.use(express.json());
@@ -49,6 +50,7 @@ db.getConnection()
 // roomSchema()
 // bookingSchema()
 // deletePhotofunction()
+paymentSchema();
 // import users from "./routes/usersRoutes.js";
 // import roomAdmins from "./routes/adminRoutes.js";
 app.use("/api/v1/users", users);
@@ -56,5 +58,5 @@ app.use("/api/v1/admins", roomAdmins);
 app.use("/api/v1/transaction", payment);
 app.use(superErrorHandeler);
 app.listen(process.env.PORT, () => {
-    console.log(`server is working on port ${process.env.PORT} `);
+    console.log(`server is working on port ${process.env.PORT}`);
 });

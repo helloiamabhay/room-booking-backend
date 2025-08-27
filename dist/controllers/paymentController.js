@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { tryCatchFunction } from '../middleware/errorHandler.js';
 import ErrorHandler from '../middleware/customError.js';
+import { v4 as uuidv4 } from 'uuid';
+import { getUserId } from '../middleware/authentication.js';
+import { db } from '../app.js';
 export const getAccessToken = async () => {
     try {
         const body = new URLSearchParams({
@@ -23,9 +26,13 @@ export const getAccessToken = async () => {
     }
 };
 export const initiatePayment = tryCatchFunction(async (req, res, next) => {
-    console.log("create api called");
     const { amount, redirectUrl } = req.body;
-    if (!amount || !redirectUrl)
+    const room_id = req.params.room_id;
+    console.log(room_id);
+    const payment_id = uuidv4();
+    const merchantOrderId = uuidv4();
+    const user_id = getUserId(req, res, next);
+    if (!amount || !redirectUrl || !room_id || !user_id)
         return next(new ErrorHandler("Missing required payment parameters", 400));
     const token = await getAccessToken();
     if (!token) {
@@ -40,7 +47,7 @@ export const initiatePayment = tryCatchFunction(async (req, res, next) => {
         expireAfter: 1200, // in seconds (20 min)
         metaInfo: {
             udf1: 'room-booking',
-            udf2: 'user-id-optional',
+            udf2: `user-id : ${user_id}`,
         },
         paymentFlow: {
             type: 'PG_CHECKOUT',
@@ -49,10 +56,23 @@ export const initiatePayment = tryCatchFunction(async (req, res, next) => {
                 "redirectUrl": redirectUrl,
             },
         },
-        merchantOrderId: "jgffytryuftuytuyfuygyguyguyguygug",
+        merchantOrderId: merchantOrderId,
     };
     try {
         const response = await axios.post(`${process.env.PAY_BASE_URL}/checkout/v2/pay`, body, { headers });
+        const connection = await db.getConnection();
+        try {
+            const Query = `INSERT INTO PAYMENTS (PAYMENT_ID,USER_ID, ROOM_ID, ORDER_ID, AMOUNT, PAYMENT_STATUS) VALUES (?, ?, ?, ?, ?, ?)`;
+            const values = [payment_id, user_id, room_id, merchantOrderId, amount, 'INITIATED'];
+            // console.log("Inserting payment record:", values);
+            await connection.query(Query, values);
+            connection.release();
+            console.log("Payment record inserted successfully");
+        }
+        catch (error) {
+            connection.release();
+            console.error("Error inserting payment record:", error);
+        }
         res.status(200).json({
             data: response.data
         });

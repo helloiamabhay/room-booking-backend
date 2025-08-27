@@ -17,6 +17,20 @@ export const getAdminId = (req, res, next) => {
         return next(new ErrorHandler("Invalid token. Please login again!", 401));
     }
 };
+// get user id from cookie-------------------------------------------
+export const getUserId = (req, res, next) => {
+    const token = req.cookies['userAuthToken'];
+    if (!token)
+        return next(new ErrorHandler("Please Login before! ", 401));
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user_id = decoded.userId;
+        return user_id;
+    }
+    catch {
+        return next(new ErrorHandler("Invalid token. Please login again!", 401));
+    }
+};
 // autherize the admin Loged-In or not -------------------------------
 export const authAdmin = (req, res, next) => {
     const token = req.cookies['adminAuthToken'];
