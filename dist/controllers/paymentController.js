@@ -28,7 +28,6 @@ export const getAccessToken = async () => {
 export const initiatePayment = tryCatchFunction(async (req, res, next) => {
     const { amount, redirectUrl } = req.body;
     const room_id = req.params.room_id;
-    console.log(room_id);
     const payment_id = uuidv4();
     const merchantOrderId = uuidv4();
     const user_id = getUserId(req, res, next);
@@ -67,13 +66,13 @@ export const initiatePayment = tryCatchFunction(async (req, res, next) => {
             // console.log("Inserting payment record:", values);
             await connection.query(Query, values);
             connection.release();
-            console.log("Payment record inserted successfully");
         }
         catch (error) {
             connection.release();
             console.error("Error inserting payment record:", error);
         }
         res.status(200).json({
+            check_order_id: merchantOrderId,
             data: response.data
         });
         return response.data;
@@ -96,7 +95,18 @@ export const verifyPayment = async (req, res) => {
                 "Authorization": `O-Bearer ${token}`,
             },
         });
-        const paymentStatus = response.data.status; // e.g. 'SUCCESS', 'FAILURE'
+        const paymentStatus = response.data.state;
+        const transactionId = response.data.transactionId;
+        try {
+            const connection = await db.getConnection();
+            if (paymentStatus === "COMPLETED") {
+                const query = `UPDATE PAYMENTS SET PAYMENT_STATUS = ?,TRANSACTION_ID = ?,PAYMENT_DATE=? WHERE ORDER_ID = ?`;
+                const values = [paymentStatus, transactionId, new Date(), orderId];
+                await connection.query(query, values);
+            }
+        }
+        catch (error) {
+        }
         return res.status(200).json({ status: paymentStatus, data: response.data });
     }
     catch (err) {
