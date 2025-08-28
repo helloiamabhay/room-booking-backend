@@ -5,6 +5,7 @@ import ErrorHandler from '../middleware/customError.js';
 import { v4 as uuidv4 } from 'uuid';
 import { getUserId } from '../middleware/authentication.js';
 import { db } from '../app.js';
+import { RowDataPacket } from 'mysql2';
 
 
 export const getAccessToken = async (): Promise<string | null> => {
@@ -39,22 +40,21 @@ export const getAccessToken = async (): Promise<string | null> => {
 
 export const initiatePayment = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
 
-    const { amount, redirectUrl } = req.body;
+    const { redirectUrl } = req.body;
     const room_id = req.params.room_id;
-
-
     const payment_id = uuidv4();
     const merchantOrderId = uuidv4();
     const user_id = getUserId(req, res, next);
-
-    if (!amount || !redirectUrl || !room_id || !user_id) return next(new ErrorHandler("Missing required payment parameters", 400));
-
     const token = await getAccessToken();
-
 
     if (!token) {
         throw new Error('Unable to get access token');
     }
+
+    const amountQuery = `SELECT PRICE FROM ROOMS WHERE ROOM_ID = ?`;
+    const [rows] = await db.query<RowDataPacket[]>(amountQuery, [room_id]);
+    const amount = rows[0]?.PRICE;
+
 
     const headers = {
         'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ export const initiatePayment = tryCatchFunction(async (req: Request, res: Respon
             const Query = `INSERT INTO PAYMENTS (PAYMENT_ID,USER_ID, ROOM_ID, ORDER_ID, AMOUNT, PAYMENT_STATUS) VALUES (?, ?, ?, ?, ?, ?)`;
 
 
-            const values = [payment_id, user_id, room_id, merchantOrderId, amount, 'INITIATED'];
+            const values = [payment_id, user_id, room_id, merchantOrderId, amount, 'PENDING'];
             // console.log("Inserting payment record:", values);
             await connection.query(Query, values);
             connection.release();
@@ -130,16 +130,19 @@ export const verifyPayment = async (req: Request, res: Response) => {
 
 
         const paymentStatus = response.data.state;
-        const transactionId = response.data.transactionId;
+        const transactionId = response.data?.paymentDetails[0]?.transactionId;
+        const paymentMode = response.data?.paymentDetails[0]?.paymentMode;
+
         try {
             const connection = await db.getConnection();
-            if (paymentStatus === "COMPLETED") {
-                const query = `UPDATE PAYMENTS SET PAYMENT_STATUS = ?,TRANSACTION_ID = ?,PAYMENT_DATE=? WHERE ORDER_ID = ?`;
-                const values = [paymentStatus, transactionId, new Date(), orderId];
-                await connection.query(query, values);
-            }
+            const query = `UPDATE PAYMENTS SET PAYMENT_STATUS = ?,PAYMENT_MODE=?,TRANSACTION_ID = ?,PAYMENT_DATE=? WHERE ORDER_ID = ?`;
+            const values = [paymentStatus, paymentMode, transactionId, new Date(), orderId];
+
+            await connection.query(query, values);
+            connection.release();
         } catch (error) {
 
+            return res.status(500).json({ error: 'Failed to update payment status' });
         }
 
         return res.status(200).json({ status: paymentStatus, data: response.data });
