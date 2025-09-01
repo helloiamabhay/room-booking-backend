@@ -121,8 +121,9 @@ export const verifyPayment = async (req: Request, res: Response) => {
     const { orderId } = req.params;
 
 
+
     const token = await getAccessToken();
-    if (!token) return res.status(500).json({ error: 'Failed to get access token' });
+    if (!token || !orderId) return res.status(500).json({ error: 'Failed to get credentials.' });
 
     try {
         const response = await axios.get(

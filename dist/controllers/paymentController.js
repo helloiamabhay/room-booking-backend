@@ -91,8 +91,8 @@ export const initiatePayment = tryCatchFunction(async (req, res, next) => {
 export const verifyPayment = async (req, res) => {
     const { orderId } = req.params;
     const token = await getAccessToken();
-    if (!token)
-        return res.status(500).json({ error: 'Failed to get access token' });
+    if (!token || !orderId)
+        return res.status(500).json({ error: 'Failed to get credentials.' });
     try {
         const response = await axios.get(`${process.env.PAY_BASE_URL}/checkout/v2/order/${orderId}/status`, {
             headers: {

@@ -68,6 +68,19 @@ export const authUser = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         decoded.userId;
+    }
+    catch {
+        return next(new ErrorHandler("Invalid token. Please login !", 401));
+    }
+    next();
+};
+export const authUserCheck = (req, res, next) => {
+    const token = req.cookies['userAuthToken'];
+    if (!token)
+        return next(new ErrorHandler("Please SignUp Or Login! ", 401));
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        decoded.userId;
         res.status(200).json({
             success: true,
             message: "User logged in"
