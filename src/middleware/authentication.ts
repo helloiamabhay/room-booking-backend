@@ -6,9 +6,6 @@ import { log } from "console";
 
 
 
-export const userAuthenticate = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
-
-})
 
 // get admin Id from cookie-------------------------------------------------
 export const getAdminId = (req: Request, res: Response, next: NextFunction): string | void => {
@@ -29,6 +26,7 @@ export const getAdminId = (req: Request, res: Response, next: NextFunction): str
 export const getUserId = (req: Request, res: Response, next: NextFunction): string | void => {
 
     const token = req.cookies['userAuthToken'];
+    console.log("User auth token:", token);
 
     if (!token) return next(new ErrorHandler("Please Login before! ", 401))
     try {
@@ -72,6 +70,7 @@ export const authAdminCheck = (req: Request, res: Response, next: NextFunction):
     }
 }
 
+// user authentication middleware -------------------------------------------------
 export const authUser = (req: Request, res: Response, next: NextFunction): string | void => {
 
     const token = req.cookies['userAuthToken'];

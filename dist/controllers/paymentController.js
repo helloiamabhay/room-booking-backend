@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { tryCatchFunction } from '../middleware/errorHandler.js';
+import ErrorHandler from '../middleware/customError.js';
 import { v4 as uuidv4 } from 'uuid';
 import { getUserId } from '../middleware/authentication.js';
 import { db } from '../app.js';
@@ -31,18 +32,22 @@ export const initiatePayment = tryCatchFunction(async (req, res, next) => {
     const merchantOrderId = uuidv4();
     const user_id = getUserId(req, res, next);
     const token = await getAccessToken();
+    console.log("Access user id :", user_id);
+    console.log("redirected url: ", redirectUrl);
     if (!token) {
         throw new Error('Unable to get access token');
     }
     const amountQuery = `SELECT PRICE FROM ROOMS WHERE ROOM_ID = ?`;
     const [rows] = await db.query(amountQuery, [room_id]);
     const amount = rows[0]?.PRICE;
+    if (!amount || !room_id || !user_id)
+        return next(new ErrorHandler("Missing required payment information", 400));
     const headers = {
         'Content-Type': 'application/json',
         Authorization: `O-Bearer ${token}`,
     };
     const body = {
-        amount,
+        amount: amount * 100,
         expireAfter: 1200, // in seconds (20 min)
         metaInfo: {
             udf1: 'room-booking',
@@ -73,7 +78,7 @@ export const initiatePayment = tryCatchFunction(async (req, res, next) => {
         }
         res.status(200).json({
             check_order_id: merchantOrderId,
-            data: response.data
+            redirect_url: response.data.redirectUrl
         });
         return response.data;
     }

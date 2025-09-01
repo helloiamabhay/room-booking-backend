@@ -84,57 +84,57 @@ export const roomController = tryCatchFunction(async (req, res, next) => {
                     availability_date
                 ];
                 await connection.query(bookingInsertQuery, bookingValues);
+                const files = req.files;
+                if (!files || files.length === 0) {
+                    return next(new ErrorHandler("Please select at least one photo", 400));
+                }
                 await connection.commit();
                 connection.release();
                 dataCache.del("search-rooms");
+                dataCache.del("admin-rooms");
+                const imgs = files.map(file => `https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${photo_url_id}/${encodeURIComponent(file.originalname)}`);
+                res.status(201).json({
+                    room: {
+                        room_id,
+                        admin_ref_id,
+                        price,
+                        room_no,
+                        locality,
+                        district,
+                        latitude,
+                        longitude,
+                        availability_date,
+                        room_type,
+                        bed_sit,
+                        ac,
+                        toilet,
+                        bathroom,
+                        fan,
+                        kitchen,
+                        water_supply,
+                        water_drink,
+                        parking_space,
+                        wifi,
+                        ellectricity_bill,
+                        rules,
+                        discription,
+                        photo_url_id,
+                        rating: 0.0,
+                        rating_count_user: 0
+                    },
+                    imgs
+                });
             }
             catch (error) {
                 await connection.rollback();
                 connection.release();
-                return next(new ErrorHandler(`Room not created, try again: ${error}`, 500));
+                return next(new ErrorHandler(`Room not created, Try again: ${error}`, 500));
             }
         }
         catch (error) {
             console.error("DB connection error:", error);
             return next(new ErrorHandler("Database connection failed, try again", 500));
         }
-        const files = req.files;
-        if (!files || files.length === 0) {
-            return next(new ErrorHandler("Please select at least one photo", 400));
-        }
-        const imgs = files.map(file => `https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${photo_url_id}/${encodeURIComponent(file.originalname)}`);
-        dataCache.del("search-rooms");
-        res.status(201).json({
-            room: {
-                room_id,
-                admin_ref_id,
-                price,
-                room_no,
-                locality,
-                district,
-                latitude,
-                longitude,
-                availability_date,
-                room_type,
-                bed_sit,
-                ac,
-                toilet,
-                bathroom,
-                fan,
-                kitchen,
-                water_supply,
-                water_drink,
-                parking_space,
-                wifi,
-                ellectricity_bill,
-                rules,
-                discription,
-                photo_url_id,
-                rating: 0.0,
-                rating_count_user: 0
-            },
-            imgs
-        });
     });
 });
 // get admin rooms ===========================================================
@@ -181,16 +181,17 @@ export const updateRoom = tryCatchFunction(async (req, res, next) => {
     const roomId = req.params.id;
     if (!roomId)
         return next(new ErrorHandler("Please provide Room Id", 404));
-    const { price, locality, district, latitude, longitude, room_type, gender, bed_sit, ac, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, discription, rules } = req.body;
-    const query = ` UPDATE rooms SET PRICE = ?, LOCALITY= ?, DISTRICT = ?, LATITUDE = ?, LONGITUDE = ?, ROOM_TYPE = ?, GENDER = ?, BED_SIT = ?, AC = ?, TOILET = ?, BATHROOM = ?, FAN = ?, KITCHEN = ?, TABLE_CHAIR = ?, ALMIRA = ?, WATER_SUPPLY = ?, WATER_DRINK=?,PARKING_SPACE=?,WIFI=?,ELECTRICITY_BILL=?,DISCRIPTION=?,RULES=? WHERE ROOM_ID = ? `;
-    const value = [price, locality, district, latitude, longitude, room_type, gender, bed_sit, ac, toilet, bathroom, fan, kitchen, table_chair, almira, water_supply, water_drink, parking_space, wifi, ellectricity_bill, discription, rules, roomId];
+    const { price, room_no, locality, district, latitude, longitude, room_type, gender, bed_sit, ac, toilet, bathroom, fan, kitchen, water_supply, water_drink, parking_space, wifi, ellectricity_bill, discription, rules } = req.body;
+    const query = ` UPDATE rooms SET PRICE = ?, ROOM_NO = ?, LOCALITY= ?, DISTRICT = ?, LATITUDE = ?, LONGITUDE = ?, ROOM_TYPE = ?, GENDER = ?, BED_SIT = ?, AC = ?, TOILET = ?, BATHROOM = ?, FAN = ?, KITCHEN = ?, WATER_SUPPLY = ?, WATER_DRINK=?,PARKING_SPACE=?,WIFI=?,ELECTRICITY_BILL=?,DISCRIPTION=?,RULES=? WHERE ROOM_ID = ? `;
+    const value = [price, room_no, locality, district, latitude, longitude, room_type, gender, bed_sit, ac, toilet, bathroom, fan, kitchen, water_supply, water_drink, parking_space, wifi, ellectricity_bill, discription, rules, roomId];
     try {
         const connection = await db.getConnection();
         try {
-            connection.query(query, value);
+            await connection.query(query, value);
             connection.release();
             // delete cached data-----------------------
             dataCache.del("search-rooms");
+            dataCache.del("admin-rooms");
             res.status(200).json({
                 success: true,
                 message: "Room updated seccessfully"
@@ -219,10 +220,12 @@ export const updatePhoto = tryCatchFunction(async (req, res, next) => {
             return next(new ErrorHandler("No files uploaded", 400));
         }
         const img = files.map((file) => {
-            return `https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${photoId}/${encodeURIComponent(file.originalname)}`;
+            const encodedurl = encodeURIComponent(`${photoId}/${file.originalname}`);
+            return `https://room-booking-app.s3.ap-south-1.amazonaws.com/rooms/${encodedurl}`;
         });
         // delete cached data-----------------------
         dataCache.del("search-rooms");
+        dataCache.del("admin-rooms");
         res.status(200).json({
             success: true,
             message: "Photo uploaded seccessfully",
@@ -242,10 +245,10 @@ export const deleteRoom = tryCatchFunction(async (req, res, next) => {
     try {
         const command1 = new ListObjectsV2Command(input);
         const data = await userS3.send(command1);
-        if (!data.Contents) {
-            return next(new ErrorHandler("No photos found to delete", 404));
-        }
-        const objects = data.Contents.map((item) => {
+        // if (!data.Contents) {
+        //     return next(new ErrorHandler("No photos found to delete", 404));
+        // }
+        const objects = data?.Contents?.map((item) => {
             return { Key: item.Key };
         });
         const params = {
@@ -258,7 +261,7 @@ export const deleteRoom = tryCatchFunction(async (req, res, next) => {
         const command2 = new DeleteObjectsCommand(params);
         const result = await userS3.send(command2);
         if (!result.Deleted || result.Deleted.length === 0) {
-            return next(new ErrorHandler("Room not deleted, try again", 500)); //hii
+            return next(new ErrorHandler(`Room not deleted, try again: ${result}`, 500)); //hii
         }
         // delete cached data-----------------------
         dataCache.del("search-rooms");
@@ -277,11 +280,11 @@ export const deleteRoom = tryCatchFunction(async (req, res, next) => {
         }
         catch (error) {
             connection.release();
-            next(new ErrorHandler("Room not deleted, try again", 404));
+            next(new ErrorHandler(`Room not deleted, try again: ineer error:  ${error}`, 404));
         }
     }
     catch (error) {
-        next(new ErrorHandler("Room not deleted, try again", 404));
+        next(new ErrorHandler(`Room not deleted, try again: outer error: ${error}`, 404));
     }
 });
 export const searchingRooms = tryCatchFunction(async (req, res, next) => {

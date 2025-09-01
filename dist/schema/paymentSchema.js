@@ -12,8 +12,8 @@ export async function paymentSchema() {
     PAYMENT_DATE TIMESTAMP DEFAULT NULL,
     REFUND_DATE TIMESTAMP DEFAULT NULL,
     CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (USER_ID) REFERENCES users(userId),
-    FOREIGN KEY (ROOM_ID) REFERENCES rooms(ROOM_ID)
+    FOREIGN KEY (USER_ID) REFERENCES users(userId) ON DELETE CASCADE,
+    FOREIGN KEY (ROOM_ID) REFERENCES rooms(ROOM_ID) ON DELETE CASCADE
     )`;
     const connection = await db.getConnection();
     try {
@@ -25,4 +25,5 @@ export async function paymentSchema() {
         connection.release();
         console.error("Error creating payment table:", error);
     }
+    const query = `ALTER TABLE PAYMENTS ON DELETE CASCADE`;
 }

@@ -1,8 +1,5 @@
-import { tryCatchFunction } from "./errorHandler.js";
 import ErrorHandler from "./customError.js";
 import jwt from "jsonwebtoken";
-export const userAuthenticate = tryCatchFunction(async (req, res, next) => {
-});
 // get admin Id from cookie-------------------------------------------------
 export const getAdminId = (req, res, next) => {
     const token = req.cookies['adminAuthToken'];
@@ -20,6 +17,7 @@ export const getAdminId = (req, res, next) => {
 // get user id from cookie-------------------------------------------
 export const getUserId = (req, res, next) => {
     const token = req.cookies['userAuthToken'];
+    console.log("User auth token:", token);
     if (!token)
         return next(new ErrorHandler("Please Login before! ", 401));
     try {
@@ -62,6 +60,7 @@ export const authAdminCheck = (req, res, next) => {
         return next(new ErrorHandler("Invalid token. Please login again!", 401));
     }
 };
+// user authentication middleware -------------------------------------------------
 export const authUser = (req, res, next) => {
     const token = req.cookies['userAuthToken'];
     if (!token)

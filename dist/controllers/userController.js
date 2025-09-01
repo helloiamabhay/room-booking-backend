@@ -71,13 +71,12 @@ export const loginUser = tryCatchFunction(async (req, res, next) => {
             if (!isPasswordValid) {
                 return next(new ErrorHandler("Incorrect Password or User!", 401));
             }
-            console.log("user: ", user);
             const token = jwt.sign({ userId: user.userId, first_name: user.first_name, email: user.email, phone: user.phone }, process.env.JWT_SECRET, { expiresIn: '15d' });
             res.cookie('userAuthToken', token, {
                 maxAge: 15 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
-                secure: true,
-                sameSite: 'strict'
+                secure: true, // in future true in prod
+                sameSite: 'strict' // in future 'strict' in prod
             });
             res.status(200).json({
                 success: true,

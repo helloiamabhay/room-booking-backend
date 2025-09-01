@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getUserId } from '../middleware/authentication.js';
 import { db } from '../app.js';
 import { RowDataPacket } from 'mysql2';
+import { log } from 'console';
 
 
 export const getAccessToken = async (): Promise<string | null> => {
@@ -47,6 +48,11 @@ export const initiatePayment = tryCatchFunction(async (req: Request, res: Respon
     const user_id = getUserId(req, res, next);
     const token = await getAccessToken();
 
+    console.log("Access user id :", user_id);
+
+    console.log("redirected url: ", redirectUrl);
+
+
     if (!token) {
         throw new Error('Unable to get access token');
     }
@@ -55,6 +61,7 @@ export const initiatePayment = tryCatchFunction(async (req: Request, res: Respon
     const [rows] = await db.query<RowDataPacket[]>(amountQuery, [room_id]);
     const amount = rows[0]?.PRICE;
 
+    if (!amount || !room_id || !user_id) return next(new ErrorHandler("Missing required payment information", 400));
 
     const headers = {
         'Content-Type': 'application/json',
@@ -62,7 +69,7 @@ export const initiatePayment = tryCatchFunction(async (req: Request, res: Respon
     };
 
     const body = {
-        amount,
+        amount: amount * 100,
         expireAfter: 1200, // in seconds (20 min)
         metaInfo: {
             udf1: 'room-booking',
@@ -72,7 +79,7 @@ export const initiatePayment = tryCatchFunction(async (req: Request, res: Respon
             type: 'PG_CHECKOUT',
             message: 'Payment for room booking',
             merchantUrls: {
-                "redirectUrl": redirectUrl,
+                "redirectUrl": redirectUrl as string,
             },
         },
         merchantOrderId: merchantOrderId,
@@ -101,7 +108,7 @@ export const initiatePayment = tryCatchFunction(async (req: Request, res: Respon
 
         res.status(200).json({
             check_order_id: merchantOrderId,
-            data: response.data
+            redirect_url: response.data.redirectUrl
         })
         return response.data;
     } catch (err: any) {
