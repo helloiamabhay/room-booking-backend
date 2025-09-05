@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getUserId } from '../middleware/authentication.js';
 import { db } from '../app.js';
 import { RowDataPacket } from 'mysql2';
-import { log } from 'console';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 
 
 export const getAccessToken = async (): Promise<string | null> => {
@@ -68,12 +68,14 @@ export const initiatePayment = tryCatchFunction(async (req: Request, res: Respon
         Authorization: `O-Bearer ${token}`,
     };
 
+
     const body = {
         amount: amount * 100,
         expireAfter: 1200, // in seconds (20 min)
         metaInfo: {
             udf1: 'room-booking',
             udf2: `user-id : ${user_id}`,
+            udf3: payment_id,
         },
         paymentFlow: {
             type: 'PG_CHECKOUT',
@@ -117,7 +119,7 @@ export const initiatePayment = tryCatchFunction(async (req: Request, res: Respon
     }
 })
 // Verify Payment Status after redirect
-export const verifyPayment = async (req: Request, res: Response) => {
+export const verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
     const { orderId } = req.params;
 
 
@@ -136,10 +138,25 @@ export const verifyPayment = async (req: Request, res: Response) => {
             }
         );
 
+        // Get user information from token ==============================================
+        const userToken = req.cookies['userAuthToken'];
+        let user_name
+        if (!userToken) return next(new ErrorHandler("Please Login before! ", 401))
+        try {
+            const decoded = jwt.verify(userToken, process.env.JWT_SECRET as string);
+            user_name = (decoded as JwtPayload).first_name as string;
 
-        const paymentStatus = response.data.state;
+        } catch {
+            return next(new ErrorHandler("Invalid token. Please login again!", 401));
+        }
+        const payment_id = response.data?.metaInfo?.udf3;
+        const paymentStatus = response.data?.paymentDetails[0]?.state;
         const transactionId = response.data?.paymentDetails[0]?.transactionId;
         const paymentMode = response.data?.paymentDetails[0]?.paymentMode;
+        const amount = response.data?.paymentDetails[0]?.amount;
+
+        const date_time = new Date()
+
 
         try {
             const connection = await db.getConnection();
@@ -153,7 +170,16 @@ export const verifyPayment = async (req: Request, res: Response) => {
             return res.status(500).json({ error: 'Failed to update payment status' });
         }
 
-        return res.status(200).json({ status: paymentStatus, data: response.data });
+        return res.status(200).json({
+            success: true,
+            payment_id,
+            user_name,
+            paymentStatus,
+            transactionId,
+            paymentMode,
+            amount,
+            date_time
+        });
     } catch (err: any) {
 
         return res.status(500).json({ error: `Failed to verify payment` });
