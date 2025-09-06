@@ -6,7 +6,7 @@ import { authUser } from "../middleware/authentication.js";
 const router = express.Router();
 
 
-router.route("/create-payment/:room_id").post(initiatePayment);
+router.route("/create-payment/:room_id").post(authUser, initiatePayment);
 router.route("/verify-payment/:orderId").get(authUser, verifyPayment);
 // router.route("/refund-payment").post(authUser, refundPayment);
 

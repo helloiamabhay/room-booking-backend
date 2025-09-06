@@ -48,13 +48,10 @@ export const initiatePayment = tryCatchFunction(async (req: Request, res: Respon
     const user_id = getUserId(req, res, next);
     const token = await getAccessToken();
 
-    console.log("Access user id :", user_id);
-
-    console.log("redirected url: ", redirectUrl);
 
 
-    if (!token) {
-        throw new Error('Unable to get access token');
+    if (!token || !user_id) {
+        throw new Error('Unable to get access token or user ID');
     }
 
     const amountQuery = `SELECT PRICE FROM ROOMS WHERE ROOM_ID = ?`;
@@ -74,8 +71,8 @@ export const initiatePayment = tryCatchFunction(async (req: Request, res: Respon
         expireAfter: 1200, // in seconds (20 min)
         metaInfo: {
             udf1: 'room-booking',
-            udf2: `user-id : ${user_id}`,
-            udf3: payment_id,
+            udf2: user_id,// user_id
+            udf3: payment_id,// payment_id
         },
         paymentFlow: {
             type: 'PG_CHECKOUT',
@@ -121,13 +118,27 @@ export const initiatePayment = tryCatchFunction(async (req: Request, res: Respon
 // Verify Payment Status after redirect
 export const verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
     const { orderId } = req.params;
+    const room_id = req.query.room_id as string;
 
-
-
-    const token = await getAccessToken();
-    if (!token || !orderId) return res.status(500).json({ error: 'Failed to get credentials.' });
+    if (!orderId || !room_id) return next(new ErrorHandler("Missing orderId or roomId to verify payment", 400));
 
     try {
+        // Get user information from token ==============================================
+        const [token, userToken] = await Promise.all([
+            getAccessToken(),
+            Promise.resolve(req.cookies['userAuthToken'])
+        ])
+
+        if (!userToken || !token) return next(new ErrorHandler("Not Authenticated! ", 401))
+        let user_name: string;
+        try {
+            const decoded = jwt.verify(userToken, process.env.JWT_SECRET as string);
+            user_name = (decoded as JwtPayload).first_name as string;
+
+        } catch {
+            return next(new ErrorHandler("Invalid token. Please login again!", 401));
+        }
+
         const response = await axios.get(
             `${process.env.PAY_BASE_URL}/checkout/v2/order/${orderId}/status`,
             {
@@ -137,37 +148,36 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
                 },
             }
         );
-
-        // Get user information from token ==============================================
-        const userToken = req.cookies['userAuthToken'];
-        let user_name
-        if (!userToken) return next(new ErrorHandler("Please Login before! ", 401))
-        try {
-            const decoded = jwt.verify(userToken, process.env.JWT_SECRET as string);
-            user_name = (decoded as JwtPayload).first_name as string;
-
-        } catch {
-            return next(new ErrorHandler("Invalid token. Please login again!", 401));
-        }
+        const user_id = response.data?.metaInfo?.udf2;
         const payment_id = response.data?.metaInfo?.udf3;
         const paymentStatus = response.data?.paymentDetails[0]?.state;
         const transactionId = response.data?.paymentDetails[0]?.transactionId;
         const paymentMode = response.data?.paymentDetails[0]?.paymentMode;
         const amount = response.data?.paymentDetails[0]?.amount;
 
-        const date_time = new Date()
+        const date_time = new Date().toString()
+        const newDateValue = new Date();
 
-
+        const connection = await db.getConnection();
         try {
-            const connection = await db.getConnection();
-            const query = `UPDATE PAYMENTS SET PAYMENT_STATUS = ?,PAYMENT_MODE=?,TRANSACTION_ID = ?,PAYMENT_DATE=? WHERE ORDER_ID = ?`;
-            const values = [paymentStatus, paymentMode, transactionId, new Date(), orderId];
+            await connection.beginTransaction();
+            const paymentQuery = `UPDATE PAYMENTS SET PAYMENT_STATUS = ?,PAYMENT_MODE=?,TRANSACTION_ID = ?,PAYMENT_DATE=? WHERE ORDER_ID = ?`;
+            const bookingsQuery = `UPDATE BOOKINGS SET USER_ID=?, BOOKING_STATUS = ?,PAYMENT_STATUS=?,PAYMENT_DATE=?,AVAILABILITY_DATE=? WHERE ROOM_ID = ?`;
+            const roomUpdateQuery = `UPDATE ROOMS SET AVAILABILITYDATE = ? WHERE ROOM_ID = ?`;
 
-            await connection.query(query, values);
+            const paymentValues = [paymentStatus, paymentMode, transactionId, newDateValue, orderId];
+            const bookingValues = [user_id, "CONFIRMED", "PAID", newDateValue, null, room_id];
+
+            await connection.query(paymentQuery, paymentValues);
+            await connection.query(bookingsQuery, bookingValues);
+            await connection.query(roomUpdateQuery, [null, room_id]);
+            await connection.commit();
             connection.release();
         } catch (error) {
+            await connection.rollback();
+            connection.release();
 
-            return res.status(500).json({ error: 'Failed to update payment status' });
+            return res.status(500).json({ error: `Failed to update payment status: ${error}` });
         }
 
         return res.status(200).json({
