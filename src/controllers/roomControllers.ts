@@ -226,11 +226,18 @@ export const updateRoom = tryCatchFunction(async (req: Request, res: Response, n
 
     const query = ` UPDATE rooms SET PRICE = ?, ROOM_NO = ?, LOCALITY= ?, DISTRICT = ?, LATITUDE = ?, LONGITUDE = ?, ROOM_TYPE = ?, GENDER = ?, BED_SIT = ?, AC = ?, TOILET = ?, BATHROOM = ?, FAN = ?, KITCHEN = ?, WATER_SUPPLY = ?, WATER_DRINK=?,PARKING_SPACE=?,WIFI=?,ELECTRICITY_BILL=?,DISCRIPTION=?,RULES=? WHERE ROOM_ID = ? `;
 
+    const bookingQuery = `UPDATE BOOKINGS SET ROOM_NO=?,PRICE=? WHERE ROOM_ID=?`
+
     const value = [price, room_no, locality, district, latitude, longitude, room_type, gender, bed_sit, ac, toilet, bathroom, fan, kitchen, water_supply, water_drink, parking_space, wifi, ellectricity_bill, discription, rules, roomId]
+
+    const bookingValue = [room_no, price, roomId]
     try {
         const connection = await db.getConnection()
         try {
+            await connection.beginTransaction();
             await connection.query(query, value)
+            await connection.query(bookingQuery, bookingValue)
+            await connection.commit();
             connection.release();
             // delete cached data-----------------------
             dataCache.del("search-rooms");
@@ -240,6 +247,7 @@ export const updateRoom = tryCatchFunction(async (req: Request, res: Response, n
                 message: "Room updated seccessfully"
             })
         } catch (error) {
+            await connection.rollback();
             connection.release();
             return next(new ErrorHandler("Room updation failed", 500));
         }
@@ -471,7 +479,7 @@ export const getHomeDashData = tryCatchFunction(async (req: Request, res: Respon
 
 
         const query = `SELECT
-  COUNT(DISTINCT ROOM_NO) AS total_rooms,
+  COUNT(DISTINCT ROOM_ID) AS total_rooms,
   COUNT(CASE WHEN BOOKING_STATUS = 'CONFIRMED' THEN 1 END) AS booked_rooms,
   COUNT(CASE WHEN BOOKING_STATUS != 'CONFIRMED' THEN 1 END) AS not_booked_rooms,
   COUNT(CASE WHEN PAYMENT_STATUS = 'PAID' THEN 1 END) AS paid_payments,
@@ -541,4 +549,27 @@ export const getAdminBookings = tryCatchFunction(async (req: Request, res: Respo
     } catch (error) {
         return next(new ErrorHandler("Database connection failed", 500));
     }
+})
+
+
+export const updatePayment = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
+
+    const { payment_status } = req.body;
+    if (!payment_status || (payment_status !== 'PAID' && payment_status !== 'UNPAID')) return next(new ErrorHandler("Please provide valid payment status", 400));
+    const adminId = getAdminId(req, res, next);
+    const payment_date = new Date()
+
+    if (payment_status === 'PAID') {
+        const bookingQuery = 'UPDATE BOOKINGS SET PAYMENT_STATUS=?,PAYMENT_DATE=? WHERE ROOM_ID=?'
+        const bookingValue = ['PAID', payment_date, adminId]
+
+    } else if (payment_status === 'UNPAID') {
+        const bookingQuery = 'UPDATE BOOKINGS SET PAYMENT_STATUS=?,PAYMENT_DATE=? WHERE ROOM_ID=?'
+        const bookingValue = ['UNPAID', payment_date, adminId]
+    }
+
+})
+
+export const roomAvailabilityChange = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
+
 })

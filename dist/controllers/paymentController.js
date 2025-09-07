@@ -122,25 +122,27 @@ export const verifyPayment = async (req, res, next) => {
         const paymentMode = response.data?.paymentDetails[0]?.paymentMode;
         const amount = response.data?.paymentDetails[0]?.amount;
         const date_time = new Date().toString();
-        const newDateValue = new Date();
-        const connection = await db.getConnection();
-        try {
-            await connection.beginTransaction();
-            const paymentQuery = `UPDATE PAYMENTS SET PAYMENT_STATUS = ?,PAYMENT_MODE=?,TRANSACTION_ID = ?,PAYMENT_DATE=? WHERE ORDER_ID = ?`;
-            const bookingsQuery = `UPDATE BOOKINGS SET USER_ID=?, BOOKING_STATUS = ?,PAYMENT_STATUS=?,PAYMENT_DATE=?,AVAILABILITY_DATE=? WHERE ROOM_ID = ?`;
-            const roomUpdateQuery = `UPDATE ROOMS SET AVAILABILITYDATE = ? WHERE ROOM_ID = ?`;
-            const paymentValues = [paymentStatus, paymentMode, transactionId, newDateValue, orderId];
-            const bookingValues = [user_id, "CONFIRMED", "PAID", newDateValue, null, room_id];
-            await connection.query(paymentQuery, paymentValues);
-            await connection.query(bookingsQuery, bookingValues);
-            await connection.query(roomUpdateQuery, [null, room_id]);
-            await connection.commit();
-            connection.release();
-        }
-        catch (error) {
-            await connection.rollback();
-            connection.release();
-            return res.status(500).json({ error: `Failed to update payment status: ${error}` });
+        if (paymentStatus === "COMPLETED") {
+            const newDateValue = new Date();
+            const connection = await db.getConnection();
+            try {
+                await connection.beginTransaction();
+                const paymentQuery = `UPDATE PAYMENTS SET PAYMENT_STATUS = ?,PAYMENT_MODE=?,TRANSACTION_ID = ?,PAYMENT_DATE=? WHERE ORDER_ID = ?`;
+                const bookingsQuery = `UPDATE BOOKINGS SET USER_ID=?, BOOKING_STATUS = ?,PAYMENT_STATUS=?,PAYMENT_DATE=?,AVAILABILITY_DATE=? WHERE ROOM_ID = ?`;
+                const roomUpdateQuery = `UPDATE ROOMS SET AVAILABILITYDATE = ? WHERE ROOM_ID = ?`;
+                const paymentValues = [paymentStatus, paymentMode, transactionId, newDateValue, orderId];
+                const bookingValues = [user_id, "CONFIRMED", "PAID", newDateValue, null, room_id];
+                await connection.query(paymentQuery, paymentValues);
+                await connection.query(bookingsQuery, bookingValues);
+                await connection.query(roomUpdateQuery, [null, room_id]);
+                await connection.commit();
+                connection.release();
+            }
+            catch (error) {
+                await connection.rollback();
+                connection.release();
+                return res.status(500).json({ error: `Failed to update payment status: ${error}` });
+            }
         }
         return res.status(200).json({
             success: true,
