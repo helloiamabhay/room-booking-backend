@@ -1,6 +1,6 @@
 import express from "express";
 import { adminLogout, createAdmin, loginAdmin } from "../controllers/adminController.js";
-import { deleteRoom, getAdminBookings, getAdminRooms, getHomeDashData, roomController, updatePhoto, updateRoom } from "../controllers/roomControllers.js";
+import { deleteRoom, getAdminBookings, getAdminRooms, getHomeDashData, roomAvailabilityChange, roomController, updatePayment, updatePhoto, updateRoom } from "../controllers/roomControllers.js";
 import { authAdmin, authAdminCheck } from "../middleware/authentication.js";
 import { deletePhotofunction } from "../middleware/room_photo_uploads.js";
 const router = express.Router();
@@ -16,4 +16,6 @@ router.route("/delete-photo").delete(authAdmin, deletePhotofunction);
 router.route("/update-room/:id").put(authAdmin, updateRoom);
 router.route("/update-photo").post(authAdmin, updatePhoto);
 router.route("/delete-room").delete(authAdmin, deleteRoom);
+router.route("/update-payment/:id").put(authAdmin, updatePayment);
+router.route("/update-room-availability/:id").put(authAdmin, roomAvailabilityChange);
 export default router;

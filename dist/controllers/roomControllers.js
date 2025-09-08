@@ -432,7 +432,7 @@ export const getAdminBookings = tryCatchFunction(async (req, res, next) => {
             bookings: cachedBookings
         });
     }
-    const query = `SELECT ROOM_NO, BOOKING_STATUS,PAYMENT_STATUS,PRICE,PAYMENT_DATE,AVAILABILITY_DATE FROM BOOKINGS WHERE ADMIN_REF_ID=?;`;
+    const query = `SELECT ROOM_ID,ROOM_NO, BOOKING_STATUS,PAYMENT_STATUS,PRICE,PAYMENT_DATE,AVAILABILITY_DATE FROM BOOKINGS WHERE ADMIN_REF_ID=?;`;
     try {
         const connection = await db.getConnection();
         try {
@@ -458,18 +458,82 @@ export const getAdminBookings = tryCatchFunction(async (req, res, next) => {
 });
 export const updatePayment = tryCatchFunction(async (req, res, next) => {
     const { payment_status } = req.body;
-    if (!payment_status || (payment_status !== 'PAID' && payment_status !== 'UNPAID'))
-        return next(new ErrorHandler("Please provide valid payment status", 400));
-    const adminId = getAdminId(req, res, next);
-    const payment_date = new Date();
-    if (payment_status === 'PAID') {
-        const bookingQuery = 'UPDATE BOOKINGS SET PAYMENT_STATUS=?,PAYMENT_DATE=? WHERE ROOM_ID=?';
-        const bookingValue = ['PAID', payment_date, adminId];
+    const room_id = req.params.id;
+    let PaymentStatus;
+    (function (PaymentStatus) {
+        PaymentStatus["PAID"] = "PAID";
+        PaymentStatus["UNPAID"] = "UNPAID";
+    })(PaymentStatus || (PaymentStatus = {}));
+    // Input validation
+    if (!payment_status || !room_id) {
+        return next(new ErrorHandler("Please provide valid credentials", 400));
     }
-    else if (payment_status === 'UNPAID') {
-        const bookingQuery = 'UPDATE BOOKINGS SET PAYMENT_STATUS=?,PAYMENT_DATE=? WHERE ROOM_ID=?';
-        const bookingValue = ['UNPAID', payment_date, adminId];
+    const payment_date = new Date();
+    let connection;
+    try {
+        connection = await db.getConnection();
+        const bookingQuery = `
+      UPDATE BOOKINGS 
+      SET PAYMENT_STATUS = ?, PAYMENT_DATE = ? 
+      WHERE ROOM_ID = ?
+    `;
+        const bookingValues = payment_status === PaymentStatus.PAID
+            ? [PaymentStatus.PAID, payment_date, room_id]
+            : [PaymentStatus.UNPAID, null, room_id]; // reset date when unpaid
+        await connection.query(bookingQuery, bookingValues);
+        // Clear cache
+        dataCache.del("admin-bookings");
+        dataCache.del("admin-home-dash");
+        res.status(200).json({
+            success: true,
+            message: `Booking payment marked as ${payment_status}`,
+        });
+    }
+    catch (error) {
+        console.error("Error in updatePayment:", error);
+        return next(new ErrorHandler("Failed to update booking", 500));
+    }
+    finally {
+        if (connection)
+            connection.release();
     }
 });
 export const roomAvailabilityChange = tryCatchFunction(async (req, res, next) => {
+    const { updateAvailability } = req.body;
+    const room_id = req.params.id;
+    let connection;
+    let AvailabilityStatus;
+    (function (AvailabilityStatus) {
+        AvailabilityStatus["CONFIRMED"] = "CONFIRMED";
+        AvailabilityStatus["CANCELLED"] = "CANCELLED";
+    })(AvailabilityStatus || (AvailabilityStatus = {}));
+    try {
+        connection = await db.getConnection();
+        const new_date = new Date();
+        // Query templates
+        const updateRoomQuery = `UPDATE ROOMS SET AVAILABILITYDATE=? WHERE ROOM_ID=?`;
+        const updateBookingQuery = `UPDATE BOOKINGS SET BOOKING_STATUS=?, PAYMENT_STATUS=?, PAYMENT_DATE=?, AVAILABILITY_DATE=? WHERE ROOM_ID=?`;
+        await connection.beginTransaction();
+        if (updateAvailability === AvailabilityStatus.CONFIRMED) {
+            await connection.query(updateRoomQuery, [null, room_id]);
+            await connection.query(updateBookingQuery, ['CONFIRMED', 'PAID', new_date, null, room_id]);
+        }
+        else if (updateAvailability === AvailabilityStatus.CANCELLED) {
+            await connection.query(updateRoomQuery, [new_date, room_id]);
+            await connection.query(updateBookingQuery, ['CANCELLED', 'UNPAID', null, new_date, room_id]);
+        }
+        await connection.commit();
+        dataCache.del("admin-bookings");
+        dataCache.del("admin-home-dash");
+        res.status(200).json({ success: true, message: "Room availability updated successfully" });
+    }
+    catch (error) {
+        if (connection)
+            await connection.rollback();
+        return next(new ErrorHandler("Failed to update room availability", 500));
+    }
+    finally {
+        if (connection)
+            connection.release();
+    }
 });
