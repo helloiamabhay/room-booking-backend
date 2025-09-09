@@ -507,6 +507,8 @@ export const roomAvailabilityChange = tryCatchFunction(async (req, res, next) =>
         AvailabilityStatus["CONFIRMED"] = "CONFIRMED";
         AvailabilityStatus["CANCELLED"] = "CANCELLED";
     })(AvailabilityStatus || (AvailabilityStatus = {}));
+    if (updateAvailability !== AvailabilityStatus.CANCELLED && updateAvailability !== AvailabilityStatus.CONFIRMED)
+        return next(new ErrorHandler("Please Provide correct input parameter", 400));
     try {
         connection = await db.getConnection();
         const new_date = new Date();
