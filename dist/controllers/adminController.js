@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import validator from "validator";
 import ErrorHandler from "../middleware/customError.js";
 import jwt from "jsonwebtoken";
+import { getAdminId } from "../middleware/authentication.js";
 // create admin *********************************************************************************************
 export const createAdmin = tryCatchFunction(async (req, res, next) => {
     const { first_name, last_name, phone, email, password, hostel_name, state, district, town_name, pinCode, gender } = req.body;
@@ -102,5 +103,18 @@ export const adminLogout = tryCatchFunction(async (req, res, next) => {
     res.status(200).json({
         success: true,
         message: "Logged Out Seccessfully!"
+    });
+});
+export const adminProfileData = tryCatchFunction(async (req, res, next) => {
+    const admin_id = getAdminId(req, res, next);
+    console.log(admin_id);
+    const connection = await db.getConnection();
+    const query = `SELECT ADMIN_ID,FIRST_NAME,LAST_NAME,PHONE,EMAIL,HOSTEL_NAME,STATE,DISTRICT,TOWN_NAME,PINCODE FROM ADMINS WHERE ADMIN_ID=?`;
+    const values = [admin_id];
+    const [rows] = await connection.query(query, values);
+    connection.release();
+    res.status(200).json({
+        success: true,
+        admin: rows[0]
     });
 });
