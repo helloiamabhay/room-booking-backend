@@ -26,7 +26,7 @@ export async function paymentSchema() {
         connection.release();
         console.error("Error creating payment table:", error);
     }
-    const query = `ALTER TABLE PAYMENTS ON DELETE CASCADE`;
+
 
 }
 

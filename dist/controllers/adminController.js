@@ -107,7 +107,7 @@ export const adminLogout = tryCatchFunction(async (req, res, next) => {
 });
 export const adminProfileData = tryCatchFunction(async (req, res, next) => {
     const admin_id = getAdminId(req, res, next);
-    console.log(admin_id);
+    // console.log(admin_id);
     const connection = await db.getConnection();
     const query = `SELECT ADMIN_ID,FIRST_NAME,LAST_NAME,PHONE,EMAIL,HOSTEL_NAME,STATE,DISTRICT,TOWN_NAME,PINCODE FROM ADMINS WHERE ADMIN_ID=?`;
     const values = [admin_id];
@@ -117,4 +117,49 @@ export const adminProfileData = tryCatchFunction(async (req, res, next) => {
         success: true,
         admin: rows[0]
     });
+});
+export const updateAdminProfile = tryCatchFunction(async (req, res, next) => {
+    const admin_id = req.params.id;
+    const { updateValue, attributeType } = req.body;
+    if (!admin_id || !updateValue || !attributeType) {
+        return next(new ErrorHandler("Please provide all required fields.", 400));
+    }
+    // Allowed attributes to update
+    const allowedAttributes = {
+        FIRST_NAME: "First name",
+        LAST_NAME: "Last name",
+        PHONE: "Phone",
+        EMAIL: "Email",
+        HOSTEL_NAME: "Hostel name",
+        STATE: "State",
+        DISTRICT: "District",
+        PINCODE: "Pincode",
+        TOWN_NAME: "Town name",
+        GENDER: "Gender"
+    };
+    if (!allowedAttributes[attributeType]) {
+        return next(new ErrorHandler("Invalid attribute type.", 400));
+    }
+    // Basic validation for phone/email if needed
+    if (attributeType === "PHONE" && !validator.isMobilePhone(String(updateValue), 'en-IN')) {
+        return next(new ErrorHandler("Please enter valid phone number.", 400));
+    }
+    if (attributeType === "EMAIL" && !validator.isEmail(updateValue)) {
+        return next(new ErrorHandler("Please enter valid email Id.", 400));
+    }
+    const connection = await db.getConnection();
+    try {
+        const query = `UPDATE ADMINS SET ${attributeType}=? WHERE ADMIN_ID=?`;
+        await connection.query(query, [updateValue, admin_id]);
+        connection.release();
+        res.status(200).json({
+            success: true,
+            updatedData: { attributeType, updateValue },
+            message: `${allowedAttributes[attributeType]} updated successfully.`
+        });
+    }
+    catch (error) {
+        connection.release();
+        return next(new ErrorHandler("Failed to update profile.", 500));
+    }
 });

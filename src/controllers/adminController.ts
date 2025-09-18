@@ -10,6 +10,7 @@ import { RowDataPacket } from "mysql2";
 import jwt from "jsonwebtoken";
 import { connect } from "http2";
 import { getAdminId } from "../middleware/authentication.js";
+import { log } from "console";
 
 // create admin *********************************************************************************************
 export const createAdmin = tryCatchFunction(async (req: Request<{}, {}, createAdminDataType>, res: Response, next: NextFunction) => {
@@ -140,7 +141,7 @@ export const adminLogout = tryCatchFunction(async (req: Request, res: Response, 
 
 export const adminProfileData = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
     const admin_id = getAdminId(req, res, next);
-    console.log(admin_id);
+    // console.log(admin_id);
 
     const connection = await db.getConnection();
     const query = `SELECT ADMIN_ID,FIRST_NAME,LAST_NAME,PHONE,EMAIL,HOSTEL_NAME,STATE,DISTRICT,TOWN_NAME,PINCODE FROM ADMINS WHERE ADMIN_ID=?`;
@@ -155,7 +156,11 @@ export const adminProfileData = tryCatchFunction(async (req: Request, res: Respo
 
 export const updateAdminProfile = tryCatchFunction(async (req: Request, res: Response, next: NextFunction) => {
     const admin_id = req.params.id;
+
     const { updateValue, attributeType } = req.body;
+    if (!admin_id || !updateValue || !attributeType) {
+        return next(new ErrorHandler("Please provide all required fields.", 400));
+    }
 
     // Allowed attributes to update
     const allowedAttributes: Record<string, string> = {
@@ -186,16 +191,17 @@ export const updateAdminProfile = tryCatchFunction(async (req: Request, res: Res
     const connection = await db.getConnection();
     try {
         const query = `UPDATE ADMINS SET ${attributeType}=? WHERE ADMIN_ID=?`;
+
         await connection.query(query, [updateValue, admin_id]);
         connection.release();
 
         res.status(200).json({
             success: true,
-            response: `${allowedAttributes[attributeType]}: ${updateValue} updated successfully`
+            updatedData: { attributeType, updateValue },
+            message: `${allowedAttributes[attributeType]} updated successfully.`
         });
     } catch (error) {
         connection.release();
-        console.error("Admin Profile Not Updated: ", error);
         return next(new ErrorHandler("Failed to update profile.", 500));
     }
 });
