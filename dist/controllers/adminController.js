@@ -163,3 +163,33 @@ export const updateAdminProfile = tryCatchFunction(async (req, res, next) => {
         return next(new ErrorHandler("Failed to update profile.", 500));
     }
 });
+export const adminPasswordChange = tryCatchFunction(async (req, res, next) => {
+    const { oldPassword, newPassword } = req.body;
+    const admin_id = getAdminId(req, res, next);
+    if (!admin_id || !oldPassword || !newPassword)
+        return next(new ErrorHandler("Please provide all required fields.", 400));
+    if (newPassword.length < 6)
+        return next(new ErrorHandler("New password must be at least 6 characters long.", 400));
+    const connection = await db.getConnection();
+    try {
+        const query = `SELECT PASSWORD FROM ADMINS WHERE ADMIN_ID=?`;
+        const [rows] = await connection.query(query, [admin_id]);
+        if (rows.length === 0)
+            return next(new ErrorHandler("Admin not found.", 404));
+        const isMatch = await bcrypt.compare(oldPassword, rows[0].PASSWORD);
+        if (!isMatch)
+            return next(new ErrorHandler("Old password is incorrect.", 400));
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        await connection.query(`UPDATE ADMINS SET PASSWORD=? WHERE ADMIN_ID=?`, [hashedNewPassword, admin_id]);
+        res.status(200).json({
+            success: true,
+            message: "Password changed successfully."
+        });
+    }
+    catch (error) {
+        return next(new ErrorHandler("Failed to change password.", 500));
+    }
+    finally {
+        connection.release();
+    }
+});

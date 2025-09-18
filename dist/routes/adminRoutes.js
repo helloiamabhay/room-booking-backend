@@ -1,5 +1,5 @@
 import express from "express";
-import { adminLogout, adminProfileData, createAdmin, loginAdmin, updateAdminProfile } from "../controllers/adminController.js";
+import { adminLogout, adminPasswordChange, adminProfileData, createAdmin, loginAdmin, updateAdminProfile } from "../controllers/adminController.js";
 import { deleteRoom, getAdminBookings, getAdminRooms, getHomeDashData, roomAvailabilityChange, roomController, updatePayment, updatePhoto, updateRoom } from "../controllers/roomControllers.js";
 import { authAdmin, authAdminCheck } from "../middleware/authentication.js";
 import { deletePhotofunction } from "../middleware/room_photo_uploads.js";
@@ -9,6 +9,7 @@ router.route("/admin-login").post(loginAdmin);
 router.route("/admin-profile").get(authAdmin, adminProfileData);
 router.route("/logout").get(adminLogout);
 router.route("/update-admin/:id").put(authAdmin, updateAdminProfile);
+router.route("/admin-password-change").put(authAdmin, adminPasswordChange);
 router.route("/admin-auth").get(authAdminCheck);
 router.route("/create-room").post(authAdmin, roomController);
 router.route("/admin-rooms").get(authAdmin, getAdminRooms);
