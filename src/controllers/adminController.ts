@@ -197,7 +197,8 @@ export const updateAdminProfile = tryCatchFunction(async (req: Request, res: Res
 
         res.status(200).json({
             success: true,
-            updatedData: { attributeType, updateValue },
+            attributeType: attributeType,
+            updateValue: updateValue,
             message: `${allowedAttributes[attributeType]} updated successfully.`
         });
     } catch (error) {
